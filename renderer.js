@@ -1095,7 +1095,9 @@ btnQuickSwitchTask.addEventListener('click', () => {
   }
 });
 
-nextUpStrip.addEventListener('click', () => switchView('queue'));
+if (nextUpStrip) {
+  nextUpStrip.addEventListener('click', () => switchView('queue'));
+}
 
 btnAddQueueTask.addEventListener('click', addNewQueueTask);
 inputTaskName.addEventListener('keydown', (e) => {
