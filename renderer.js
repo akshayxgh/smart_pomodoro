@@ -901,8 +901,27 @@ function resetTimer() {
     state.timeLeft = state.totalTime;
   } else {
     const activeTask = getActiveTask();
-    state.totalTime = activeTask ? activeTask.minutes * 60 : 60 * 60;
-    state.timeLeft = state.totalTime;
+    if (activeTask) {
+      state.taskRemainingSeconds = activeTask.minutes * 60;
+      state.sprintIndex = 1;
+
+      if (state.pacingMode === 'pomo') {
+        const sprintSecs = Math.min(state.taskRemainingSeconds, state.pomoSprintMinutes * 60);
+        state.totalTime = sprintSecs;
+        state.timeLeft = sprintSecs;
+        const totalSprints = Math.max(1, Math.ceil((activeTask.minutes * 60) / (state.pomoSprintMinutes * 60)));
+        timerLabel.textContent = `🍅 SPRINT ${state.sprintIndex}/${totalSprints}`;
+        activeSessionDurationTag.textContent = `${Math.ceil(sprintSecs / 60)}m / ${activeTask.minutes}m`;
+      } else {
+        state.totalTime = activeTask.minutes * 60;
+        state.timeLeft = state.totalTime;
+        timerLabel.textContent = 'PRODUCTIVE TIME';
+        activeSessionDurationTag.textContent = `${activeTask.minutes}m`;
+      }
+    } else {
+      state.totalTime = 60 * 60;
+      state.timeLeft = state.totalTime;
+    }
   }
   updateDisplay();
 }
