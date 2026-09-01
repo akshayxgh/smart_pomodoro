@@ -1061,26 +1061,33 @@ body.theme-light .timer-time {
   gap: 2px;
 }
 
-.theme-pill-btn {
+.theme-pill-btn, .pacing-pill-btn {
+  flex: 1;
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 8px;
-  font-weight: 700;
-  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 4px 6px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.theme-pill-btn:hover {
+.theme-pill-btn:hover, .pacing-pill-btn:hover {
   color: var(--text-main);
 }
 
-.theme-pill-btn.active {
+.theme-pill-btn.active, .pacing-pill-btn.active {
   background: var(--bg-widget);
   color: var(--text-main);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+body.theme-light .theme-pill-btn.active, body.theme-light .pacing-pill-btn.active {
+  background: #ffffff;
+  color: var(--text-main);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .toggle-control {

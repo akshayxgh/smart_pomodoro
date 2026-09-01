@@ -1376,7 +1376,7 @@ if (savedPresetKey !== null && savedPresetKey !== 'custom_yt') {
 // Adaptive Ambient Theme Engine (Windows OS & Daylight Sun Cycle)
 // ----------------------------------------------------
 let currentThemeMode = localStorage.getItem('focus_flow_theme_mode') || 'auto';
-const themePillBtns = document.querySelectorAll('.theme-pill-btn');
+const themePillBtns = document.querySelectorAll('.theme-pill-btn[data-theme-mode]');
 
 function applyTheme() {
   let effectiveTheme = 'dark';
