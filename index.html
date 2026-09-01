@@ -138,12 +138,6 @@
           </div>
         </div>
 
-        <!-- Next in Queue Preview -->
-        <div class="next-up-strip" id="next-up-strip" title="Upcoming session in queue">
-          <span class="next-label">UP NEXT:</span>
-          <span id="next-task-name" class="next-task-name">Code Review (30m)</span>
-        </div>
-
         <!-- Focus Audio Player (Inside Timer View) -->
         <section class="music-card">
           <div class="music-header">
@@ -237,6 +231,27 @@
                 <button class="theme-pill-btn" data-theme-mode="light" title="Daylight Morning Mode">☀️ Light</button>
                 <button class="theme-pill-btn" data-theme-mode="dark" title="Midnight Dark Mode">🌙 Dark</button>
               </div>
+            </div>
+
+            <!-- Timer Style / Logic Configuration -->
+            <div class="settings-row theme-selector-row">
+              <span class="settings-row-label">Timer Logic</span>
+              <div class="theme-mode-pills" id="pacing-style-pills">
+                <button class="theme-pill-btn active" id="btn-pacing-deep" data-pacing="deep" title="Deep Focus: Run full continuous chunk (e.g. 60m)">🌊 Deep Focus</button>
+                <button class="theme-pill-btn" id="btn-pacing-pomo" data-pacing="pomo" title="Pomodoro Style: 25m sprints with auto 5m breaks">🍅 Pomodoro</button>
+              </div>
+            </div>
+
+            <div class="settings-row" id="row-pomo-sprint-len" style="display: none;">
+              <span class="settings-row-label">Sprint Length</span>
+              <select id="select-pomo-length" class="settings-pacing-select" title="Pomodoro focus interval">
+                <option value="15">15 min</option>
+                <option value="20">20 min</option>
+                <option value="25" selected>25 min</option>
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+                <option value="50">50 min</option>
+              </select>
             </div>
 
             <div class="settings-row">

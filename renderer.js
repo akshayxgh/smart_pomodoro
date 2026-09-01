@@ -10,10 +10,13 @@ const savedSyncAudio = localStorage.getItem('focus_flow_sync_audio') !== null
   ? localStorage.getItem('focus_flow_sync_audio') === 'true' 
   : true;
 
+const savedPacingMode = localStorage.getItem('focus_flow_pacing_mode') || 'deep';
+const savedPomoMins = parseInt(localStorage.getItem('focus_flow_pomo_mins'), 10) || 25;
+
 let state = {
   activeTaskId: null,
   isBreakMode: false,
-  breakType: null, // 'short' | 'long'
+  breakType: null, // 'short' | 'long' | 'Sprint Recharge'
   timeLeft: 60 * 60,
   totalTime: 60 * 60,
   isRunning: false,
@@ -22,6 +25,13 @@ let state = {
   isAlwaysOnTop: true,
   musicPlaying: false,
   
+  // Timer Style / Logic (Deep Continuous Chunk vs Pomodoro 25m Sprints)
+  pacingMode: savedPacingMode, // 'deep' | 'pomo'
+  pomoSprintMinutes: savedPomoMins,
+  shortBreakMinutes: 5,
+  taskRemainingSeconds: 60 * 60,
+  sprintIndex: 1,
+
   // Audio playback engine
   activeAudioEngine: 'stream', // 'stream' | 'synth' | 'youtube'
   currentTitle: 'Synthwave Focus',
@@ -488,6 +498,28 @@ function updateAnalyticsUI() {
   statEfficiency.textContent = `${pct}% Flow`;
 }
 
+// Settings Pacing Logic Elements
+const btnPacingDeep = document.getElementById('btn-pacing-deep');
+const btnPacingPomo = document.getElementById('btn-pacing-pomo');
+const rowPomoSprintLen = document.getElementById('row-pomo-sprint-len');
+const selectPomoLength = document.getElementById('select-pomo-length');
+
+function setPacingMode(mode) {
+  state.pacingMode = mode;
+  localStorage.setItem('focus_flow_pacing_mode', mode);
+
+  if (btnPacingDeep) btnPacingDeep.classList.toggle('active', mode === 'deep');
+  if (btnPacingPomo) btnPacingPomo.classList.toggle('active', mode === 'pomo');
+  if (rowPomoSprintLen) {
+    rowPomoSprintLen.style.display = mode === 'pomo' ? 'flex' : 'none';
+  }
+
+  const activeTask = getActiveTask();
+  if (activeTask && !state.isBreakMode) {
+    setActiveTask(activeTask.id, false);
+  }
+}
+
 function getActiveTask() {
   return queueTasks.find(t => t.active) || queueTasks[0];
 }
@@ -495,7 +527,6 @@ function getActiveTask() {
 function setActiveTask(taskId, autoStart = false) {
   state.isBreakMode = false;
   state.breakType = null;
-  timerLabel.textContent = 'PRODUCTIVE TIME';
 
   const breakIconEl = document.getElementById('break-btn-icon');
   if (breakIconEl) breakIconEl.textContent = '☕';
@@ -511,11 +542,24 @@ function setActiveTask(taskId, autoStart = false) {
   const activeTask = getActiveTask();
   if (activeTask) {
     state.activeTaskId = activeTask.id;
-    state.totalTime = activeTask.minutes * 60;
-    state.timeLeft = state.totalTime;
+    state.taskRemainingSeconds = activeTask.minutes * 60;
+    state.sprintIndex = 1;
+
+    if (state.pacingMode === 'pomo') {
+      const sprintSecs = Math.min(state.taskRemainingSeconds, state.pomoSprintMinutes * 60);
+      state.totalTime = sprintSecs;
+      state.timeLeft = sprintSecs;
+      const totalSprints = Math.max(1, Math.ceil((activeTask.minutes * 60) / (state.pomoSprintMinutes * 60)));
+      timerLabel.textContent = `🍅 SPRINT ${state.sprintIndex}/${totalSprints}`;
+      activeSessionDurationTag.textContent = `${Math.ceil(sprintSecs / 60)}m / ${activeTask.minutes}m`;
+    } else {
+      state.totalTime = activeTask.minutes * 60;
+      state.timeLeft = state.totalTime;
+      timerLabel.textContent = 'PRODUCTIVE TIME';
+      activeSessionDurationTag.textContent = `${activeTask.minutes}m`;
+    }
     
     activeSessionTitle.textContent = activeTask.title;
-    activeSessionDurationTag.textContent = `${activeTask.minutes}m`;
     pillTrackName.textContent = activeTask.title;
 
     if (state.isRunning) {
@@ -576,7 +620,6 @@ function exitBreakAndResumeFocus() {
   pauseTimer();
   state.isBreakMode = false;
   state.breakType = null;
-  timerLabel.textContent = 'PRODUCTIVE TIME';
 
   const breakIconEl = document.getElementById('break-btn-icon');
   if (breakIconEl) breakIconEl.textContent = '☕';
@@ -588,11 +631,22 @@ function exitBreakAndResumeFocus() {
   const activeTask = getActiveTask();
   if (activeTask) {
     state.activeTaskId = activeTask.id;
-    state.totalTime = activeTask.minutes * 60;
-    state.timeLeft = state.totalTime;
+    
+    if (state.pacingMode === 'pomo') {
+      const sprintSecs = Math.min(state.taskRemainingSeconds, state.pomoSprintMinutes * 60);
+      state.totalTime = sprintSecs;
+      state.timeLeft = sprintSecs;
+      const totalSprints = Math.max(1, Math.ceil((activeTask.minutes * 60) / (state.pomoSprintMinutes * 60)));
+      timerLabel.textContent = `🍅 SPRINT ${state.sprintIndex}/${totalSprints}`;
+      activeSessionDurationTag.textContent = `${Math.ceil(sprintSecs / 60)}m / ${activeTask.minutes}m`;
+    } else {
+      state.totalTime = activeTask.minutes * 60;
+      state.timeLeft = state.totalTime;
+      timerLabel.textContent = 'PRODUCTIVE TIME';
+      activeSessionDurationTag.textContent = `${activeTask.minutes}m`;
+    }
     
     activeSessionTitle.textContent = activeTask.title;
-    activeSessionDurationTag.textContent = `${activeTask.minutes}m`;
     pillTrackName.textContent = activeTask.title;
   }
 
@@ -601,19 +655,7 @@ function exitBreakAndResumeFocus() {
   startTimer();
 }
 
-function updateUpcomingPreview() {
-  const activeTask = getActiveTask();
-  const uncompleted = queueTasks.filter(t => !t.completed);
-  const nextTask = uncompleted.find(t => t.id !== (activeTask ? activeTask.id : null));
-
-  if (nextTask) {
-    nextTaskName.textContent = `${nextTask.title} (${nextTask.minutes}m)`;
-    nextUpStrip.classList.remove('hidden');
-  } else {
-    nextTaskName.textContent = 'All planned tasks complete! 🎉';
-    nextUpStrip.classList.remove('hidden');
-  }
-}
+function updateUpcomingPreview() {}
 
 let draggedItemIndex = null;
 
@@ -869,14 +911,46 @@ function completeCurrentSession() {
   pauseTimer();
   playChime('sessionEnd');
 
-  if (!state.isBreakMode) {
-    const activeTask = getActiveTask();
-    if (activeTask) {
-      activeTask.completed = true;
-      dailyStats.sessionsCompleted++;
-      saveDailyStats();
-      logTaskToMyCES(activeTask);
+  if (state.isBreakMode) {
+    // Break finished! If in Pomodoro mode, advance to next sprint automatically!
+    if (state.pacingMode === 'pomo' && state.taskRemainingSeconds > 0) {
+      state.isBreakMode = false;
+      state.breakType = null;
+      state.sprintIndex++;
+      const sprintSecs = Math.min(state.taskRemainingSeconds, state.pomoSprintMinutes * 60);
+      state.totalTime = sprintSecs;
+      state.timeLeft = sprintSecs;
+      const activeTask = getActiveTask();
+      const totalSprints = activeTask ? Math.max(1, Math.ceil((activeTask.minutes * 60) / (state.pomoSprintMinutes * 60))) : 1;
+      timerLabel.textContent = `🍅 SPRINT ${state.sprintIndex}/${totalSprints}`;
+      updateDisplay();
+      playChime('sessionStart');
+      startTimer();
+      return;
     }
+    exitBreakAndResumeFocus();
+    return;
+  }
+
+  // Active Focus Session finished
+  if (state.pacingMode === 'pomo') {
+    state.taskRemainingSeconds = Math.max(0, state.taskRemainingSeconds - state.totalTime);
+    
+    if (state.taskRemainingSeconds > 0) {
+      // Sprint complete, but task still has remaining time -> Launch auto short break!
+      showMyCESToast(`🍅 Sprint complete! Take a ${state.shortBreakMinutes}m recharge break.`);
+      startQuickBreak(state.shortBreakMinutes, 'Sprint Recharge');
+      return;
+    }
+  }
+
+  // Full task complete!
+  const activeTask = getActiveTask();
+  if (activeTask) {
+    activeTask.completed = true;
+    dailyStats.sessionsCompleted++;
+    saveDailyStats();
+    logTaskToMyCES(activeTask);
   }
 
   // Auto-chain to next uncompleted task in the queue!
@@ -1554,6 +1628,30 @@ if (chkAutoLogMyces) {
   });
 }
 
+// Pacing Logic Event Listeners in Settings Drawer
+if (btnPacingDeep) {
+  btnPacingDeep.addEventListener('click', () => setPacingMode('deep'));
+}
+if (btnPacingPomo) {
+  btnPacingPomo.addEventListener('click', () => setPacingMode('pomo'));
+}
+if (selectPomoLength) {
+  selectPomoLength.value = state.pomoSprintMinutes.toString();
+  selectPomoLength.addEventListener('change', (e) => {
+    state.pomoSprintMinutes = parseInt(e.target.value, 10) || 25;
+    localStorage.setItem('focus_flow_pomo_mins', state.pomoSprintMinutes.toString());
+    if (state.pacingMode === 'pomo') {
+      const activeTask = getActiveTask();
+      if (activeTask && !state.isBreakMode) setActiveTask(activeTask.id, false);
+    }
+  });
+}
+
+// Initial Pacing Mode UI state
+if (btnPacingDeep) btnPacingDeep.classList.toggle('active', state.pacingMode === 'deep');
+if (btnPacingPomo) btnPacingPomo.classList.toggle('active', state.pacingMode === 'pomo');
+if (rowPomoSprintLen) rowPomoSprintLen.style.display = state.pacingMode === 'pomo' ? 'flex' : 'none';
+
 // Fetch live MyCES tracks on startup
 fetchMyCESTracks();
 
@@ -1564,5 +1662,4 @@ if (initialTask) {
   saveQueue();
 }
 renderQueue();
-updateUpcomingPreview();
 updateAnalyticsUI();

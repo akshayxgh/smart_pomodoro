@@ -1120,6 +1120,23 @@ body.theme-light .slider-switch::after {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
+.settings-pacing-select {
+  background: var(--bg-nav);
+  border: 1px solid var(--bg-widget-border);
+  color: var(--text-main);
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 2px 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+.settings-pacing-select option {
+  background: var(--bg-widget);
+  color: var(--text-main);
+}
+
 .toggle-control input:checked + .slider-switch {
   background: var(--accent-purple);
 }
