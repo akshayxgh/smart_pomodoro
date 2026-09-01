@@ -32,8 +32,8 @@ let isPillMode = false;
 
 const NORMAL_WIDTH = 320;
 const NORMAL_HEIGHT = 490;
-const PILL_WIDTH = 240;
-const PILL_HEIGHT = 52;
+const PILL_WIDTH = 246;
+const PILL_HEIGHT = 54;
 
 // Dynamic port static server (Port 0 auto-allocates an open port)
 function startLocalServer(onReady) {
@@ -97,6 +97,7 @@ function createWindow() {
     y: 80,
     frame: false,
     transparent: true,
+    backgroundColor: '#00000000',
     alwaysOnTop: true,
     resizable: false,
     maximizable: false,

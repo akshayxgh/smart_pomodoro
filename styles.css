@@ -1163,21 +1163,28 @@ body.theme-light .slider-switch::after {
 
 /* Micro Pill Mode Layout - 100% Draggable Everywhere */
 .pill-card {
-  width: 240px;
-  height: 48px;
+  width: 236px;
+  height: 44px;
   background: var(--bg-widget);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--bg-widget-border);
-  border-radius: 24px;
+  border-radius: 9999px;
+  clip-path: inset(0 round 9999px);
+  -webkit-clip-path: inset(0 round 9999px);
   display: flex;
   align-items: center;
   padding: 0 10px;
   gap: 8px;
-  box-shadow: var(--shadow-widget);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
   cursor: grab;
-  margin: 0;
+  margin: auto;
+  overflow: hidden;
   transition: background 0.35s ease, border-color 0.35s ease;
+}
+
+body.theme-light .pill-card {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.9);
 }
 
 .pill-card:active {
