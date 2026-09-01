@@ -92,6 +92,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: NORMAL_WIDTH,
     height: NORMAL_HEIGHT,
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     x: Math.max(20, width - NORMAL_WIDTH - 50),
     y: 80,
     frame: false,
@@ -159,8 +160,12 @@ app.on('window-all-closed', () => {
 function createTray() {
   if (tray) return;
 
-  const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9333ea"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs><circle cx="16" cy="16" r="14" fill="url(#grad)" stroke="#ffffff" stroke-width="1.5"/><polygon points="17,6 10,17 15,17 14,26 22,14 17,14" fill="#ffffff"/></svg>`;
-  const icon = nativeImage.createFromBuffer(Buffer.from(iconSvg)).resize({ width: 18, height: 18 });
+  const iconPath = path.join(__dirname, 'assets', 'tray-icon.png');
+  let icon = nativeImage.createFromPath(iconPath);
+  if (icon.isEmpty()) {
+    const pngBuffer = fs.readFileSync(iconPath);
+    icon = nativeImage.createFromBuffer(pngBuffer);
+  }
 
   tray = new Tray(icon);
   tray.setToolTip('Focus Flow - Productive Pomodoro & Audio');
