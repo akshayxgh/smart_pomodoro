@@ -170,17 +170,56 @@ ipcMain.on('toggle-always-on-top', (event, value) => {
 ipcMain.on('toggle-pill-mode', (event, toPill) => {
   if (!mainWindow) return;
   isPillMode = toPill;
-  if (isPillMode) {
-    mainWindow.setSize(PILL_WIDTH, PILL_HEIGHT, true);
-  } else {
-    mainWindow.setSize(NORMAL_WIDTH, NORMAL_HEIGHT, true);
+
+  const currentBounds = mainWindow.getBounds();
+  const currentDisplay = screen.getDisplayMatching(currentBounds);
+  const workArea = currentDisplay.workArea;
+
+  const targetWidth = isPillMode ? PILL_WIDTH : NORMAL_WIDTH;
+  const targetHeight = isPillMode ? PILL_HEIGHT : NORMAL_HEIGHT;
+
+  // Intelligently clamp window position to ensure it stays fully inside the screen workArea
+  let safeX = currentBounds.x;
+  let safeY = currentBounds.y;
+
+  const margin = 12;
+  if (safeX + targetWidth > workArea.x + workArea.width - margin) {
+    safeX = workArea.x + workArea.width - targetWidth - margin;
   }
+  if (safeX < workArea.x + margin) {
+    safeX = workArea.x + margin;
+  }
+
+  if (safeY + targetHeight > workArea.y + workArea.height - margin) {
+    safeY = workArea.y + workArea.height - targetHeight - margin;
+  }
+  if (safeY < workArea.y + margin) {
+    safeY = workArea.y + margin;
+  }
+
+  mainWindow.setBounds({
+    x: Math.round(safeX),
+    y: Math.round(safeY),
+    width: targetWidth,
+    height: targetHeight
+  }, true);
 });
 
 ipcMain.on('window-move', (event, { deltaX, deltaY }) => {
   if (!mainWindow) return;
-  const [x, y] = mainWindow.getPosition();
-  mainWindow.setPosition(Math.round(x + deltaX), Math.round(y + deltaY));
+  const currentBounds = mainWindow.getBounds();
+  const currentDisplay = screen.getDisplayMatching(currentBounds);
+  const workArea = currentDisplay.workArea;
+
+  let newX = Math.round(currentBounds.x + deltaX);
+  let newY = Math.round(currentBounds.y + deltaY);
+
+  // Keep window top grab header visible on screen
+  const minVisible = 40;
+  newX = Math.max(workArea.x - currentBounds.width + minVisible, Math.min(workArea.x + workArea.width - minVisible, newX));
+  newY = Math.max(workArea.y, Math.min(workArea.y + workArea.height - minVisible, newY));
+
+  mainWindow.setPosition(newX, newY);
 });
 
 // Dedicated YouTube Login Window for Premium Authentication
