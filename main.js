@@ -12,8 +12,8 @@ if (!gotTheLock) {
   process.exit(0);
 }
 
-// Set global User-Agent fallback to genuine Firefox to bypass Google OAuth Webview blocks everywhere
-app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0';
+// Set global User-Agent fallback to genuine Microsoft Edge to bypass Google OAuth Webview blocks everywhere
+app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0';
 
 // Suppress Chromium disk/GPU cache warnings on Windows and allow autoplay
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
@@ -297,19 +297,14 @@ ipcMain.on('open-youtube-login', () => {
     return;
   }
 
-  // Google allows Firefox User-Agent without triggering "Less Secure App / Webview" blocks
-  const firefoxUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0';
+  const edgeUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0';
   const ytSession = session.fromPartition('persist:youtube_profile');
 
   ytSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    details.requestHeaders['User-Agent'] = firefoxUA;
-    // Strip Chromium Client Hints headers so Google treats the session purely as Firefox
-    delete details.requestHeaders['sec-ch-ua'];
-    delete details.requestHeaders['sec-ch-ua-mobile'];
-    delete details.requestHeaders['sec-ch-ua-platform'];
-    delete details.requestHeaders['Sec-CH-UA'];
-    delete details.requestHeaders['Sec-CH-UA-Mobile'];
-    delete details.requestHeaders['Sec-CH-UA-Platform'];
+    details.requestHeaders['User-Agent'] = edgeUA;
+    details.requestHeaders['sec-ch-ua'] = '"Microsoft Edge";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
+    details.requestHeaders['sec-ch-ua-mobile'] = '?0';
+    details.requestHeaders['sec-ch-ua-platform'] = '"Windows"';
     callback({ cancel: false, requestHeaders: details.requestHeaders });
   });
 
@@ -327,8 +322,8 @@ ipcMain.on('open-youtube-login', () => {
     }
   });
 
-  loginWindow.webContents.setUserAgent(firefoxUA);
-  loginWindow.loadURL('https://www.youtube.com/');
+  loginWindow.webContents.setUserAgent(edgeUA);
+  loginWindow.loadURL('https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue');
 
   loginWindow.on('closed', () => {
     loginWindow = null;
