@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Flow</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body class="theme-dark">
+  <!-- Full Widget View -->
+  <div id="widget-view" class="widget-card">
+    <!-- Title Bar / Window Drag Header -->
+    <header class="drag-header" id="main-drag-header">
+      <div class="app-brand">
+        <span class="status-dot"></span>
+        <span class="app-title">FOCUS FLOW</span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-pin" class="icon-btn active" title="Toggle Always-on-Top">
+          <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="17" x2="12" y2="22"></line>
+            <path d="M5 17h14v-2l-2-2V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v8l-2 2v2z"></path>
+          </svg>
+        </button>
+        <button id="btn-pill-mode" class="icon-btn" title="Compact Pill Mode">
+          <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="8" width="16" height="8" rx="4"></rect>
+          </svg>
+        </button>
+        <button id="btn-minimize" class="icon-btn" title="Minimize">
+          <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+        <button id="btn-close" class="icon-btn close-btn" title="Close">
+          <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs: Timer & Planned Queue -->
+    <nav class="app-nav-tabs">
+      <button id="tab-btn-timer" class="nav-tab active" data-view="timer">
+        <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>Active Timer</span>
+      </button>
+      <button id="tab-btn-queue" class="nav-tab" data-view="queue">
+        <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        <span>Plan Queue</span>
+        <span id="queue-badge" class="queue-badge">3</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content-body">
+      <!-- VIEW 1: ACTIVE FOCUS TIMER -->
+      <div id="view-timer" class="view-panel">
+        <!-- Active Session Focus Pill -->
+        <div class="active-session-header" id="btn-quick-switch-task" title="Click to switch or return to focus">
+          <span class="active-session-icon" id="active-session-icon">🎯</span>
+          <span id="active-session-title" class="active-session-title">SQL Study Session</span>
+          <span id="active-session-duration-tag" class="session-tag">60m</span>
+        </div>
+
+        <!-- Timer Ring Section -->
+        <div class="timer-display-wrap">
+          <div class="circular-timer">
+            <svg class="progress-ring" width="160" height="160">
+              <circle class="progress-ring__bg" stroke="rgba(255,255,255,0.06)" stroke-width="7" fill="transparent" r="68" cx="80" cy="80"/>
+              <circle id="timer-progress" class="progress-ring__circle" stroke="url(#timer-gradient)" stroke-width="7" stroke-linecap="round" fill="transparent" r="68" cx="80" cy="80"/>
+              <defs>
+                <linearGradient id="timer-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#8b5cf6" />
+                  <stop offset="50%" stop-color="#ec4899" />
+                  <stop offset="100%" stop-color="#3b82f6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            
+            <div class="timer-center-info">
+              <span id="timer-label" class="timer-label">PRODUCTIVE TIME</span>
+              <div id="time-text" class="timer-time">60:00</div>
+              <div class="session-tally" id="session-tally-container">
+                <!-- Tally dots -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Timer Controls -->
+          <div class="timer-actions">
+            <button id="btn-reset" class="action-circle-btn" title="Reset Current Session">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+            </button>
+            
+            <button id="btn-play-pause" class="action-circle-btn primary-action" title="Start / Pause Session">
+              <svg id="play-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <polygon points="6 4 20 12 6 20 6 4"></polygon>
+              </svg>
+              <svg id="pause-icon" class="hidden" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            </button>
+
+            <!-- Quick Break / Resume Focus Button -->
+            <button id="btn-quick-break" class="action-circle-btn break-action-btn" title="☕ Take Break (Tap: 5m Short • Hold 3s: 15m Long)">
+              <svg class="break-hold-ring" width="34" height="34" viewBox="0 0 34 34">
+                <circle id="hold-ring-circle" class="hold-ring-circle" cx="17" cy="17" r="15" fill="none" stroke="url(#timer-gradient)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="94.2" stroke-linecap="round"/>
+              </svg>
+              <span id="break-btn-icon" class="break-icon">☕</span>
+            </button>
+
+            <button id="btn-skip" class="action-circle-btn" title="Complete / Next in Queue">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Next in Queue Preview -->
+        <div class="next-up-strip" id="next-up-strip" title="Upcoming session in queue">
+          <span class="next-label">UP NEXT:</span>
+          <span id="next-task-name" class="next-task-name">Code Review (30m)</span>
+        </div>
+
+        <!-- Focus Audio Player (Inside Timer View) -->
+        <section class="music-card">
+          <div class="music-header">
+            <div class="music-info">
+              <div class="sound-wave" id="sound-wave">
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <div class="track-details">
+                <div id="track-name" class="track-name">Synthwave Focus</div>
+                <div id="track-status" class="track-status">Ready to play</div>
+              </div>
+            </div>
+            
+            <div class="music-quick-controls">
+              <button id="btn-toggle-music" class="music-btn" title="Play / Pause Music">
+                <svg id="music-play-svg" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                  <polygon points="6 4 20 12 6 20 6 4"></polygon>
+                </svg>
+                <svg id="music-pause-svg" class="hidden" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16"></rect>
+                  <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Presets Selection Bar -->
+          <div class="presets-scroll">
+            <button class="preset-pill active" data-type="stream" data-src="https://streams.ilovemusic.de/iloveradio17.mp3" data-title="Synthwave Focus">⚡ Synthwave</button>
+            <button class="preset-pill" data-type="stream" data-src="https://ice1.somafm.com/groovesalad-128-mp3" data-title="Lofi Chill & Beats">🎧 Lofi Chill</button>
+            <button class="preset-pill" data-type="stream" data-src="https://ice1.somafm.com/lush-128-mp3" data-title="Coffee & Ambient Lounge">☕ Coffee & Lounge</button>
+            <button class="preset-pill" data-type="youtube" data-video-id="XyLngkF3OmE" data-title="Concert Hall Piano">🎹 Deep Piano</button>
+            <button class="preset-pill" data-type="youtube" data-video-id="lIs710ue2DM" data-title="Rain in Car • Focus Room">🚗 Rain in Car</button>
+            <button class="preset-pill" data-type="youtube" data-video-id="m7AFT-dCmTE" data-title="White Noise Live">⚪ White Noise</button>
+          </div>
+
+          <!-- Hidden Background YouTube Webview Player -->
+          <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">
+            <webview id="yt-webview"
+              src="about:blank"
+              allowpopups="false"
+              partition="persist:youtube_profile"
+              useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0">
+            </webview>
+          </div>
+
+          <!-- Volume & Integrated Controls Toolbar -->
+          <div class="music-footer">
+            <div class="volume-container">
+              <button id="btn-mute" class="vol-btn" title="Mute/Unmute">
+                <svg id="vol-icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+              </button>
+              <input type="range" id="vol-slider" class="volume-slider" min="0" max="100" value="70">
+            </div>
+
+            <div class="footer-btn-group">
+              <button id="btn-custom-url-toggle" class="custom-url-btn" title="Custom YouTube Link">
+                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+                <span>YouTube URL</span>
+              </button>
+
+              <!-- Integrated Settings Button Beside YouTube URL -->
+              <button id="btn-settings" class="custom-url-btn" title="Settings & Audio Sync">
+                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                <span>Options</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hidden / Expandable Custom YouTube input -->
+          <div id="custom-url-drawer" class="custom-url-drawer hidden">
+            <input type="text" id="custom-yt-input" placeholder="Paste YouTube Link or Video ID...">
+            <button id="btn-load-yt" class="load-btn">Play Audio</button>
+          </div>
+
+          <!-- Hidden Settings Drawer with Audio Sync Toggle & YouTube Login -->
+          <div id="settings-drawer" class="settings-drawer hidden">
+            <div class="settings-row theme-selector-row">
+              <span class="settings-row-label">Theme Mode</span>
+              <div class="theme-mode-pills">
+                <button class="theme-pill-btn active" data-theme-mode="auto" title="Auto: Time of Day & Windows Theme">🌗 Auto</button>
+                <button class="theme-pill-btn" data-theme-mode="light" title="Daylight Morning Mode">☀️ Light</button>
+                <button class="theme-pill-btn" data-theme-mode="dark" title="Midnight Dark Mode">🌙 Dark</button>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <label class="toggle-control" title="Auto-play focus sound during active sessions">
+                <input type="checkbox" id="chk-sync-music" checked>
+                <span class="slider-switch"></span>
+                <span class="toggle-label">Sync Audio with Timer</span>
+              </label>
+            </div>
+
+            <!-- MyCES Supabase Cloud Sync Section -->
+            <div class="settings-row myces-sync-row">
+              <div class="myces-status-info">
+                <span class="myces-cloud-icon">☁️</span>
+                <div class="myces-meta">
+                  <span class="myces-label">MyCES Supabase Sync</span>
+                  <span class="myces-sublabel" id="myces-status-text">Connected (Akshay)</span>
+                </div>
+              </div>
+              <button id="btn-refresh-myces" class="refresh-myces-btn" title="Refresh Tracks from MyCES">🔄</button>
+            </div>
+
+            <div class="settings-row">
+              <label class="toggle-control" title="Auto-log study sessions directly to MyCES recent study logs">
+                <input type="checkbox" id="chk-auto-log-myces" checked>
+                <span class="slider-switch"></span>
+                <span class="toggle-label">Auto-Log to MyCES</span>
+              </label>
+            </div>
+            
+            <div class="login-row">
+              <button id="btn-login-yt" class="login-yt-btn" title="Sign in to your YouTube Premium profile for ad-free listening">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <span>Sign in to YouTube Premium</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- VIEW 2: PRODUCTIVE TASK TIMELINE / QUEUE & ANALYTICS -->
+      <div id="view-queue" class="view-panel hidden">
+        <!-- Add Task Form with MyCES Topic Integration -->
+        <div class="add-task-card">
+          <div class="myces-quick-row">
+            <select id="select-myces-topic" class="myces-select" title="Pick any topic from your MyCES Learning Tracks">
+              <option value="">⚡ Pick from MyCES Track...</option>
+              <optgroup label="🗄️ SQL Track" id="optgroup-sql">
+                <option value="SQL Track:Database Fundamentals">Database Fundamentals</option>
+                <option value="SQL Track:Keys & Constraints">Keys & Constraints</option>
+                <option value="SQL Track:Relationships & Joins">Relationships & Joins</option>
+                <option value="SQL Track:Self Joins">Self Joins</option>
+                <option value="SQL Track:Transactions (Commit/Rollback)">Transactions (Commit/Rollback)</option>
+                <option value="SQL Track:ACID Properties">ACID Properties</option>
+                <option value="SQL Track:Views & Stored Procedures">Views & Stored Procedures</option>
+                <option value="SQL Track:Functions & Window Functions">Functions & Window Functions</option>
+                <option value="SQL Track:Indexes & Query Optimization">Indexes & Query Optimization</option>
+              </optgroup>
+              <optgroup label="📊 Power BI Track" id="optgroup-pbi">
+                <option value="Power BI Track:Power BI Service">Power BI Service</option>
+                <option value="Power BI Track:Workspaces & Roles">Workspaces & Roles</option>
+                <option value="Power BI Track:Apps & Sharing">Apps & Sharing</option>
+                <option value="Power BI Track:Governance & RLS">Governance & RLS</option>
+                <option value="Power BI Track:Incremental Refresh">Incremental Refresh</option>
+                <option value="Power BI Track:Deployment Pipelines">Deployment Pipelines</option>
+                <option value="Power BI Track:Performance Optimization">Performance Optimization</option>
+                <option value="Power BI Track:Advanced DAX">Advanced DAX</option>
+                <option value="Power BI Track:PL-300 Preparation">PL-300 Preparation</option>
+              </optgroup>
+              <optgroup label="🐍 Python for Analytics" id="optgroup-python">
+                <option value="Python for Analytics Track:Pandas">Pandas</option>
+                <option value="Python for Analytics Track:NumPy (Basic)">NumPy (Basic)</option>
+                <option value="Python for Analytics Track:OpenPyXL">OpenPyXL</option>
+                <option value="Python for Analytics Track:Requests">Requests</option>
+                <option value="Python for Analytics Track:Plotly">Plotly</option>
+                <option value="Python for Analytics Track:Data Cleaning">Data Cleaning</option>
+                <option value="Python for Analytics Track:API Integration">API Integration</option>
+                <option value="Python for Analytics Track:Data Transformation">Data Transformation</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="add-task-inputs">
+            <input type="text" id="input-task-name" placeholder="Task name (e.g. SQL Study)..." maxlength="45">
+            <div class="duration-picker-wrap">
+              <input type="number" id="input-task-mins" min="1" max="240" value="60" title="Duration in minutes">
+              <span class="mins-label">min</span>
+            </div>
+          </div>
+          <button id="btn-add-queue-task" class="add-task-confirm-btn">
+            <span>+ Add to Queue</span>
+          </button>
+        </div>
+
+        <!-- Floating MyCES Sync Toast Notification -->
+        <div id="myces-toast" class="myces-toast hidden">
+          <span class="toast-icon">✨</span>
+          <span id="toast-msg" class="toast-text">Logged to MyCES!</span>
+        </div>
+
+        <!-- Draggable Queue List -->
+        <div class="queue-list" id="queue-list-container">
+          <!-- Dynamically populated draggable tasks -->
+        </div>
+
+        <!-- Total Planned Summary Footer -->
+        <div class="queue-summary-footer">
+          <span id="queue-total-time">Total Planned: 2h 00m</span>
+          <button id="btn-clear-done" class="clear-done-btn" title="Clear completed tasks">Clear Done</button>
+        </div>
+
+        <!-- Focus Analytics Card (Replacing Player on Queue Tab) -->
+        <div class="analytics-card">
+          <div class="analytics-header">
+            <span class="analytics-title">📊 Focus Insights Today</span>
+            <span id="stat-efficiency" class="stat-badge">85% Flow</span>
+          </div>
+          <div class="analytics-grid">
+            <div class="stat-box">
+              <span class="stat-val" id="stat-focus-time">0h 00m</span>
+              <span class="stat-label">Focus Done</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-val" id="stat-tasks-done">0 / 3</span>
+              <span class="stat-label">Tasks Done</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-val" id="stat-sessions-count">0</span>
+              <span class="stat-label">Sessions</span>
+            </div>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="analytics-progress-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Micro Pill Mode View (Fully Draggable Everywhere) -->
+  <div id="pill-view" class="pill-card hidden" title="Drag to place anywhere on your screen">
+    <div class="pill-drag-icon">
+      <span class="pill-dot"></span>
+    </div>
+    
+    <div class="pill-timer-wrap" id="btn-pill-toggle-timer" title="Click to Pause/Start">
+      <span id="pill-time-text">60:00</span>
+    </div>
+
+    <button id="btn-pill-play" class="pill-action-btn" title="Play/Pause">
+      <svg id="pill-play-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+        <polygon points="6 4 20 12 6 20 6 4"></polygon>
+      </svg>
+      <svg id="pill-pause-icon" class="hidden" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+        <rect x="6" y="4" width="4" height="16"></rect>
+        <rect x="14" y="4" width="4" height="16"></rect>
+      </svg>
+    </button>
+
+    <div class="pill-goal-name" id="pill-track-name" title="Current Focus Goal">SQL Study Session</div>
+
+    <button id="btn-pill-expand" class="pill-icon-btn" title="Expand Full Widget">
+      <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none">
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <polyline points="9 21 3 21 3 15"></polyline>
+        <line x1="21" y1="3" x2="14" y2="10"></line>
+        <line x1="3" y1="21" x2="10" y2="14"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Hidden Direct Audio Element -->
+  <audio id="audio-stream-player" crossorigin="anonymous" preload="none"></audio>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
