@@ -297,14 +297,16 @@ ipcMain.on('open-youtube-login', () => {
     return;
   }
 
-  const edgeUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0';
+  const chromeUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const ytSession = session.fromPartition('persist:youtube_profile');
+  ytSession.setUserAgent(chromeUA);
 
   ytSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    details.requestHeaders['User-Agent'] = edgeUA;
-    details.requestHeaders['sec-ch-ua'] = '"Microsoft Edge";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
+    details.requestHeaders['User-Agent'] = chromeUA;
+    details.requestHeaders['sec-ch-ua'] = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"';
     details.requestHeaders['sec-ch-ua-mobile'] = '?0';
     details.requestHeaders['sec-ch-ua-platform'] = '"Windows"';
+    delete details.requestHeaders['X-Requested-With'];
     callback({ cancel: false, requestHeaders: details.requestHeaders });
   });
 
@@ -317,13 +319,12 @@ ipcMain.on('open-youtube-login', () => {
     webPreferences: {
       partition: 'persist:youtube_profile',
       nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true
+      contextIsolation: true
     }
   });
 
-  loginWindow.webContents.setUserAgent(edgeUA);
-  loginWindow.loadURL('https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue');
+  loginWindow.webContents.setUserAgent(chromeUA);
+  loginWindow.loadURL('https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue&hl=en');
 
   loginWindow.on('closed', () => {
     loginWindow = null;
