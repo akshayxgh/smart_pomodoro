@@ -1110,6 +1110,12 @@ btnClose.addEventListener('click', () => {
   if (window.electronAPI) window.electronAPI.closeWindow();
 });
 
+if (window.electronAPI && window.electronAPI.onTogglePill) {
+  window.electronAPI.onTogglePill(() => {
+    setPillMode(!state.isPillMode);
+  });
+}
+
 // Timer Controls Listeners
 btnPlayPause.addEventListener('click', toggleTimer);
 btnPillPlay.addEventListener('click', toggleTimer);

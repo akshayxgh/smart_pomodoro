@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   togglePillMode: (val) => ipcRenderer.send('toggle-pill-mode', val),
   moveWindow: (delta) => ipcRenderer.send('window-move', delta),
   openYouTubeLogin: () => ipcRenderer.send('open-youtube-login'),
-  onLoginComplete: (callback) => ipcRenderer.on('youtube-login-complete', callback)
+  onLoginComplete: (callback) => ipcRenderer.on('youtube-login-complete', callback),
+  onTogglePill: (callback) => ipcRenderer.on('toggle-pill-from-tray', callback)
 });

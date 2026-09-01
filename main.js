@@ -1,7 +1,9 @@
-const { app, BrowserWindow, ipcMain, session, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, session, screen, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
+
+let tray = null;
 
 // Ensure single instance: focus existing window on duplicate launch
 const gotTheLock = app.requestSingleInstanceLock();
@@ -124,6 +126,8 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  createTray();
 }
 
 app.on('second-instance', () => {
@@ -152,9 +156,66 @@ app.on('window-all-closed', () => {
   }
 });
 
+function createTray() {
+  if (tray) return;
+
+  const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9333ea"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs><circle cx="16" cy="16" r="14" fill="url(#grad)" stroke="#ffffff" stroke-width="1.5"/><polygon points="17,6 10,17 15,17 14,26 22,14 17,14" fill="#ffffff"/></svg>`;
+  const icon = nativeImage.createFromBuffer(Buffer.from(iconSvg)).resize({ width: 18, height: 18 });
+
+  tray = new Tray(icon);
+  tray.setToolTip('Focus Flow - Productive Pomodoro & Audio');
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '⚡ Show Focus Flow',
+      click: () => showAndRestoreWindow()
+    },
+    {
+      label: '🔲 Toggle Floating Pill Mode',
+      click: () => {
+        showAndRestoreWindow();
+        if (mainWindow) mainWindow.webContents.send('toggle-pill-from-tray');
+      }
+    },
+    { type: 'separator' },
+    {
+      label: '✕ Exit Focus Flow',
+      click: () => {
+        app.isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+
+  tray.setContextMenu(contextMenu);
+
+  tray.on('click', () => {
+    showAndRestoreWindow();
+  });
+
+  tray.on('double-click', () => {
+    showAndRestoreWindow();
+  });
+}
+
+function showAndRestoreWindow() {
+  if (!mainWindow) return;
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.focus();
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+}
+
 // IPC handlers for window controls
 ipcMain.on('window-minimize', () => {
-  if (mainWindow) mainWindow.minimize();
+  if (mainWindow) {
+    mainWindow.hide();
+    createTray();
+  }
 });
 
 ipcMain.on('window-close', () => {
