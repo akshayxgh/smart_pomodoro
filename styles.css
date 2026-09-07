@@ -606,6 +606,20 @@ body.theme-light .timer-time {
   padding: 2px 0;
 }
 
+.queue-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px 10px;
+  background: var(--bg-card);
+  border: 1px dashed var(--bg-widget-border);
+  border-radius: 8px;
+  gap: 3px;
+  margin: 2px 0;
+}
+
 .queue-item {
   display: flex;
   align-items: center;

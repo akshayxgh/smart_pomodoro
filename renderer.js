@@ -48,18 +48,21 @@ let state = {
 // ----------------------------------------------------
 // Queue Tasks & Analytics Storage (With Auto-Clean on Launch)
 // ----------------------------------------------------
-let rawQueue = JSON.parse(localStorage.getItem('focus_flow_queue')) || [
-  { id: '1', title: 'SQL Study Session', minutes: 60, completed: false, active: true },
-  { id: '2', title: 'Code Review & Testing', minutes: 30, completed: false, active: false },
-  { id: '3', title: 'Deep Problem Solving', minutes: 45, completed: false, active: false }
-];
+// Queue Tasks & Analytics Storage (Pure Standalone Pomodoro by Default)
+// ----------------------------------------------------
+let storedQueue = JSON.parse(localStorage.getItem('focus_flow_queue'));
 
-// Auto-clean completed tasks so you start each session fresh with remaining tasks
-let queueTasks = rawQueue.filter(t => !t.completed);
-if (queueTasks.length === 0) {
-  queueTasks.push({ id: Date.now().toString(), title: 'Deep Focus Session', minutes: 60, completed: false, active: true });
+// Clean out legacy demo placeholder tasks if present
+if (Array.isArray(storedQueue)) {
+  const isOnlyDemo = storedQueue.length === 3 && storedQueue[0].id === '1' && storedQueue[1].id === '2' && storedQueue[2].id === '3';
+  if (isOnlyDemo) {
+    storedQueue = [];
+    localStorage.setItem('focus_flow_queue', JSON.stringify([]));
+  }
 }
-if (!queueTasks.some(t => t.active)) {
+
+let queueTasks = Array.isArray(storedQueue) ? storedQueue.filter(t => !t.completed) : [];
+if (queueTasks.length > 0 && !queueTasks.some(t => t.active)) {
   queueTasks[0].active = true;
 }
 
@@ -521,7 +524,8 @@ function setPacingMode(mode) {
 }
 
 function getActiveTask() {
-  return queueTasks.find(t => t.active) || queueTasks[0];
+  if (queueTasks.length === 0) return null;
+  return queueTasks.find(t => t.active) || queueTasks[0] || null;
 }
 
 function setActiveTask(taskId, autoStart = false) {
@@ -561,16 +565,39 @@ function setActiveTask(taskId, autoStart = false) {
     
     activeSessionTitle.textContent = activeTask.title;
     pillTrackName.textContent = activeTask.title;
+  } else {
+    // Standalone / Pure Mode without queued tasks
+    state.activeTaskId = null;
+    state.sprintIndex = 1;
 
-    if (state.isRunning) {
-      clearInterval(state.timerInterval);
-      state.isRunning = false;
+    if (state.pacingMode === 'pomo') {
+      const sprintSecs = state.pomoSprintMinutes * 60;
+      state.totalTime = sprintSecs;
+      state.timeLeft = sprintSecs;
+      state.taskRemainingSeconds = sprintSecs;
+      timerLabel.textContent = '🍅 POMODORO SPRINT';
+      activeSessionTitle.textContent = 'Pomodoro Focus';
+      activeSessionDurationTag.textContent = `${state.pomoSprintMinutes}m`;
+      pillTrackName.textContent = 'Pomodoro Focus';
+    } else {
+      state.totalTime = 60 * 60;
+      state.timeLeft = 60 * 60;
+      state.taskRemainingSeconds = 60 * 60;
+      timerLabel.textContent = 'PRODUCTIVE TIME';
+      activeSessionTitle.textContent = 'Deep Focus';
+      activeSessionDurationTag.textContent = '60m';
+      pillTrackName.textContent = 'Deep Focus';
     }
-    updateDisplay();
+  }
 
-    if (autoStart) {
-      toggleTimer();
-    }
+  if (state.isRunning) {
+    clearInterval(state.timerInterval);
+    state.isRunning = false;
+  }
+  updateDisplay();
+
+  if (autoStart) {
+    toggleTimer();
   }
   saveQueue();
 }
@@ -648,12 +675,32 @@ function exitBreakAndResumeFocus() {
     
     activeSessionTitle.textContent = activeTask.title;
     pillTrackName.textContent = activeTask.title;
+  } else {
+    state.activeTaskId = null;
+    if (state.pacingMode === 'pomo') {
+      const sprintSecs = state.pomoSprintMinutes * 60;
+      state.totalTime = sprintSecs;
+      state.timeLeft = sprintSecs;
+      state.taskRemainingSeconds = sprintSecs;
+      timerLabel.textContent = '🍅 POMODORO SPRINT';
+      activeSessionTitle.textContent = 'Pomodoro Focus';
+      activeSessionDurationTag.textContent = `${state.pomoSprintMinutes}m`;
+      pillTrackName.textContent = 'Pomodoro Focus';
+    } else {
+      state.totalTime = 60 * 60;
+      state.timeLeft = 60 * 60;
+      state.taskRemainingSeconds = 60 * 60;
+      timerLabel.textContent = 'PRODUCTIVE TIME';
+      activeSessionTitle.textContent = 'Deep Focus';
+      activeSessionDurationTag.textContent = '60m';
+      pillTrackName.textContent = 'Deep Focus';
+    }
   }
 
-  updateDisplay();
-  playChime('sessionStart');
-  startTimer();
-}
+    updateDisplay();
+    playChime('sessionStart');
+    startTimer();
+  }
 
 function updateUpcomingPreview() {}
 
@@ -668,6 +715,18 @@ function renderQueue() {
   
   const pendingCount = queueTasks.filter(t => !t.completed).length;
   queueBadge.textContent = pendingCount;
+
+  if (queueTasks.length === 0) {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'queue-empty-state';
+    emptyState.innerHTML = `
+      <span style="font-size: 16px;">🍅</span>
+      <span style="font-size: 10px; font-weight: 700; color: var(--text-main);">Standalone Pomodoro Active</span>
+      <span style="font-size: 8.5px; color: var(--text-muted); line-height: 1.3;">No queued tasks. The app runs pure ${state.pomoSprintMinutes}m focus sprints & 5m breaks. Add custom tasks above anytime!</span>
+    `;
+    queueListContainer.appendChild(emptyState);
+    return;
+  }
 
   queueTasks.forEach((task, index) => {
     const item = document.createElement('div');
@@ -734,7 +793,7 @@ function renderQueue() {
       }
       saveQueue();
       const currentActive = getActiveTask();
-      if (currentActive) setActiveTask(currentActive.id, false);
+      setActiveTask(currentActive ? currentActive.id : null, false);
     });
 
     // HTML5 Drag & Drop Listeners
@@ -919,8 +978,21 @@ function resetTimer() {
         activeSessionDurationTag.textContent = `${activeTask.minutes}m`;
       }
     } else {
-      state.totalTime = 60 * 60;
-      state.timeLeft = state.totalTime;
+      state.sprintIndex = 1;
+      if (state.pacingMode === 'pomo') {
+        const sprintSecs = state.pomoSprintMinutes * 60;
+        state.totalTime = sprintSecs;
+        state.timeLeft = sprintSecs;
+        state.taskRemainingSeconds = sprintSecs;
+        timerLabel.textContent = '🍅 POMODORO SPRINT';
+        activeSessionDurationTag.textContent = `${state.pomoSprintMinutes}m`;
+      } else {
+        state.totalTime = 60 * 60;
+        state.timeLeft = state.totalTime;
+        state.taskRemainingSeconds = 60 * 60;
+        timerLabel.textContent = 'PRODUCTIVE TIME';
+        activeSessionDurationTag.textContent = '60m';
+      }
     }
   }
   updateDisplay();
@@ -963,13 +1035,21 @@ function completeCurrentSession() {
     }
   }
 
-  // Full task complete!
+  // Task or Standalone Focus Session complete!
   const activeTask = getActiveTask();
   if (activeTask) {
     activeTask.completed = true;
     dailyStats.sessionsCompleted++;
     saveDailyStats();
     logTaskToMyCES(activeTask);
+  } else {
+    dailyStats.sessionsCompleted++;
+    saveDailyStats();
+    if (state.pacingMode === 'pomo') {
+      showMyCESToast(`🍅 Pomodoro sprint complete! Take a ${state.shortBreakMinutes}m recharge break.`);
+      startQuickBreak(state.shortBreakMinutes, 'Sprint Recharge');
+      return;
+    }
   }
 
   // Auto-chain to next uncompleted task in the queue!
@@ -978,7 +1058,7 @@ function completeCurrentSession() {
     setActiveTask(nextTask.id, false);
   } else {
     saveQueue();
-    updateDisplay();
+    setActiveTask(null, false);
   }
 }
 
@@ -1128,11 +1208,8 @@ inputTaskMins.addEventListener('keydown', (e) => {
 
 btnClearDone.addEventListener('click', () => {
   queueTasks = queueTasks.filter(t => !t.completed);
-  if (queueTasks.length === 0) {
-    queueTasks.push({ id: Date.now().toString(), title: 'Deep Focus Session', minutes: 60, completed: false, active: true });
-  }
   const active = getActiveTask();
-  if (active) setActiveTask(active.id, false);
+  setActiveTask(active ? active.id : null, false);
   saveQueue();
 });
 
