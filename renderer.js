@@ -95,8 +95,16 @@ const queueBadge = document.getElementById('queue-badge');
 
 const tabBtnTimer = document.getElementById('tab-btn-timer');
 const tabBtnQueue = document.getElementById('tab-btn-queue');
+const tabBtnHistory = document.getElementById('tab-btn-history');
 const viewTimer = document.getElementById('view-timer');
 const viewQueue = document.getElementById('view-queue');
+const viewHistory = document.getElementById('view-history');
+const historyBadge = document.getElementById('history-badge');
+const historyTableBody = document.getElementById('history-table-body');
+const btnClearHistory = document.getElementById('btn-clear-history');
+const hSumFocus = document.getElementById('h-sum-focus');
+const hSumShort = document.getElementById('h-sum-short');
+const hSumLong = document.getElementById('h-sum-long');
 const btnQuickSwitchTask = document.getElementById('btn-quick-switch-task');
 
 const inputTaskName = document.getElementById('input-task-name');
@@ -499,6 +507,120 @@ function updateAnalyticsUI() {
   const pct = queueTasks.length > 0 ? Math.round((doneTasks / queueTasks.length) * 100) : 0;
   analyticsProgressBar.style.width = `${pct}%`;
   statEfficiency.textContent = `${pct}% Flow`;
+}
+
+// ----------------------------------------------------
+// Session Tracking History (Cleared on Exit & Startup)
+// ----------------------------------------------------
+let sessionHistory = [];
+try {
+  sessionHistory = JSON.parse(sessionStorage.getItem('focus_flow_session_history')) || [];
+} catch (e) {
+  sessionHistory = [];
+}
+
+function logSessionInterval(type, name, durationMins, status = 'completed') {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  const timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+
+  const entry = {
+    id: Date.now(),
+    type: type, // 'focus' | 'short' | 'long'
+    name: name,
+    durationMins: Math.max(1, durationMins),
+    time: timeStr,
+    status: status // 'completed' | 'skipped'
+  };
+
+  sessionHistory.unshift(entry);
+  try {
+    sessionStorage.setItem('focus_flow_session_history', JSON.stringify(sessionHistory));
+  } catch (e) {}
+  renderHistoryTable();
+}
+
+function clearSessionHistory() {
+  sessionHistory = [];
+  try {
+    sessionStorage.removeItem('focus_flow_session_history');
+  } catch (e) {}
+  renderHistoryTable();
+  showMyCESToast('Session tracking log cleared');
+}
+
+function renderHistoryTable() {
+  if (!historyTableBody) return;
+  historyTableBody.innerHTML = '';
+
+  let totalFocusMins = 0;
+  let focusCount = 0;
+  let totalShortMins = 0;
+  let shortCount = 0;
+  let totalLongMins = 0;
+  let longCount = 0;
+
+  if (historyBadge) historyBadge.textContent = sessionHistory.length;
+
+  if (sessionHistory.length === 0) {
+    historyTableBody.innerHTML = `
+      <tr>
+        <td colspan="4" class="history-empty-row">
+          <span>🍅 No intervals recorded yet this session.</span><br>
+          <span style="opacity: 0.7;">Complete Pomodoros, Short Breaks, or Long Breaks to track them here.</span>
+        </td>
+      </tr>
+    `;
+    if (hSumFocus) hSumFocus.textContent = '0 (0m)';
+    if (hSumShort) hSumShort.textContent = '0 (0m)';
+    if (hSumLong) hSumLong.textContent = '0 (0m)';
+    return;
+  }
+
+  sessionHistory.forEach(item => {
+    if (item.type === 'focus') {
+      focusCount++;
+      totalFocusMins += item.durationMins;
+    } else if (item.type === 'long') {
+      longCount++;
+      totalLongMins += item.durationMins;
+    } else {
+      shortCount++;
+      totalShortMins += item.durationMins;
+    }
+
+    const tr = document.createElement('tr');
+
+    let typeBadgeHtml = '';
+    if (item.type === 'focus') {
+      typeBadgeHtml = `<span class="h-badge h-badge-focus">🍅 ${item.name || 'Focus'}</span>`;
+    } else if (item.type === 'long') {
+      typeBadgeHtml = `<span class="h-badge h-badge-long">🛋️ Long Break</span>`;
+    } else {
+      typeBadgeHtml = `<span class="h-badge h-badge-short">☕ Short Break</span>`;
+    }
+
+    const isDone = item.status === 'completed';
+    const statusHtml = isDone 
+      ? `<span class="h-status-done">✓ Done</span>`
+      : `<span class="h-status-skip">⏭ Skip</span>`;
+
+    tr.innerHTML = `
+      <td>${typeBadgeHtml}</td>
+      <td style="font-family: var(--font-mono); color: var(--text-muted); font-size: 7.5px;">${item.time}</td>
+      <td style="font-family: var(--font-mono); font-weight: 700; color: var(--text-main);">${item.durationMins}m</td>
+      <td style="text-align: right;">${statusHtml}</td>
+    `;
+
+    historyTableBody.appendChild(tr);
+  });
+
+  if (hSumFocus) hSumFocus.textContent = `${focusCount} (${totalFocusMins}m)`;
+  if (hSumShort) hSumShort.textContent = `${shortCount} (${totalShortMins}m)`;
+  if (hSumLong) hSumLong.textContent = `${longCount} (${totalLongMins}m)`;
 }
 
 // Settings Pacing Logic Elements
@@ -1003,6 +1125,10 @@ function completeCurrentSession() {
   playChime('sessionEnd');
 
   if (state.isBreakMode) {
+    const breakDuration = Math.round(state.totalTime / 60) || 5;
+    const isLong = (state.breakType === 'Long');
+    logSessionInterval(isLong ? 'long' : 'short', `${state.breakType || 'Short'} Break`, breakDuration, 'completed');
+
     // Break finished! If in Pomodoro mode, advance to next sprint automatically!
     if (state.pacingMode === 'pomo' && state.taskRemainingSeconds > 0) {
       state.isBreakMode = false;
@@ -1024,6 +1150,12 @@ function completeCurrentSession() {
   }
 
   // Active Focus Session finished
+  const activeTask = getActiveTask();
+  const focusDuration = state.pacingMode === 'pomo' 
+    ? Math.round(state.totalTime / 60) 
+    : (activeTask ? activeTask.minutes : 60);
+  logSessionInterval('focus', activeTask ? activeTask.title : 'Pomodoro Focus', focusDuration, 'completed');
+
   if (state.pacingMode === 'pomo') {
     state.taskRemainingSeconds = Math.max(0, state.taskRemainingSeconds - state.totalTime);
     
@@ -1036,7 +1168,6 @@ function completeCurrentSession() {
   }
 
   // Task or Standalone Focus Session complete!
-  const activeTask = getActiveTask();
   if (activeTask) {
     activeTask.completed = true;
     dailyStats.sessionsCompleted++;
@@ -1166,25 +1297,29 @@ if (btnQuickBreak) {
 }
 
 // ----------------------------------------------------
-// View Switcher (Timer vs Queue)
+// ----------------------------------------------------
+// View Switcher (Timer vs Queue vs History)
 // ----------------------------------------------------
 function switchView(viewName) {
-  if (viewName === 'timer') {
-    tabBtnTimer.classList.add('active');
-    tabBtnQueue.classList.remove('active');
-    viewTimer.classList.remove('hidden');
-    viewQueue.classList.add('hidden');
-  } else {
-    tabBtnTimer.classList.remove('active');
-    tabBtnQueue.classList.add('active');
-    viewTimer.classList.add('hidden');
-    viewQueue.classList.remove('hidden');
+  tabBtnTimer.classList.toggle('active', viewName === 'timer');
+  tabBtnQueue.classList.toggle('active', viewName === 'queue');
+  if (tabBtnHistory) tabBtnHistory.classList.toggle('active', viewName === 'history');
+
+  viewTimer.classList.toggle('hidden', viewName !== 'timer');
+  viewQueue.classList.toggle('hidden', viewName !== 'queue');
+  if (viewHistory) viewHistory.classList.toggle('hidden', viewName !== 'history');
+
+  if (viewName === 'queue') {
     updateAnalyticsUI();
+  } else if (viewName === 'history') {
+    renderHistoryTable();
   }
 }
 
 tabBtnTimer.addEventListener('click', () => switchView('timer'));
 tabBtnQueue.addEventListener('click', () => switchView('queue'));
+if (tabBtnHistory) tabBtnHistory.addEventListener('click', () => switchView('history'));
+if (btnClearHistory) btnClearHistory.addEventListener('click', clearSessionHistory);
 
 btnQuickSwitchTask.addEventListener('click', () => {
   if (state.isBreakMode) {
@@ -1295,8 +1430,14 @@ btnPillToggleTimer.addEventListener('click', toggleTimer);
 btnReset.addEventListener('click', resetTimer);
 btnSkip.addEventListener('click', () => {
   if (state.isBreakMode) {
+    const elapsedMins = Math.max(1, Math.round((state.totalTime - state.timeLeft) / 60));
+    const isLong = (state.breakType === 'Long');
+    logSessionInterval(isLong ? 'long' : 'short', `${state.breakType || 'Short'} Break`, elapsedMins, 'skipped');
     exitBreakAndResumeFocus();
   } else {
+    const activeTask = getActiveTask();
+    const elapsedMins = Math.max(1, Math.round((state.totalTime - state.timeLeft) / 60));
+    logSessionInterval('focus', activeTask ? activeTask.title : 'Pomodoro Focus', elapsedMins, 'skipped');
     completeCurrentSession();
   }
 });
@@ -1761,3 +1902,11 @@ if (initialTask) {
 }
 renderQueue();
 updateAnalyticsUI();
+renderHistoryTable();
+
+// Automatically wipe session history log on app exit
+window.addEventListener('beforeunload', () => {
+  try {
+    sessionStorage.removeItem('focus_flow_session_history');
+  } catch (e) {}
+});

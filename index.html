@@ -47,14 +47,14 @@
     <!-- Main Navigation Tabs: Timer & Planned Queue -->
     <nav class="app-nav-tabs">
       <button id="tab-btn-timer" class="nav-tab active" data-view="timer">
-        <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none">
+        <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2" fill="none">
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
-        <span>Active Timer</span>
+        <span>Timer</span>
       </button>
       <button id="tab-btn-queue" class="nav-tab" data-view="queue">
-        <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none">
+        <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2" fill="none">
           <line x1="8" y1="6" x2="21" y2="6"></line>
           <line x1="8" y1="12" x2="21" y2="12"></line>
           <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -62,8 +62,19 @@
           <line x1="3" y1="12" x2="3.01" y2="12"></line>
           <line x1="3" y1="18" x2="3.01" y2="18"></line>
         </svg>
-        <span>Plan Queue</span>
-        <span id="queue-badge" class="queue-badge">3</span>
+        <span>Queue</span>
+        <span id="queue-badge" class="queue-badge">0</span>
+      </button>
+      <button id="tab-btn-history" class="nav-tab" data-view="history" title="Session Tracker (Pomodoro + Breaks)">
+        <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2" fill="none">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <span>Logs</span>
+        <span id="history-badge" class="queue-badge" style="background: var(--accent-purple);">0</span>
       </button>
     </nav>
 
@@ -387,6 +398,58 @@
           </div>
           <div class="progress-bar-wrap">
             <div class="progress-bar-fill" id="analytics-progress-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 3: SESSION TRACKING LOG (POMODORO + BREAKS + LONG BREAKS) -->
+      <div id="view-history" class="view-panel hidden">
+        <div class="history-card">
+          <div class="history-header">
+            <div class="history-title-wrap">
+              <span class="history-title">📋 Session History</span>
+              <span class="history-subtitle">Auto-clears on exit</span>
+            </div>
+            <button id="btn-clear-history" class="clear-history-btn" title="Clear current session tracking log">
+              <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Clear</span>
+            </button>
+          </div>
+
+          <!-- Summary Badges Row -->
+          <div class="history-summary-row">
+            <div class="history-pill focus-pill" title="Total Pomodoro / Focus Sprints">
+              <span class="h-pill-icon">🍅</span>
+              <span class="h-pill-val" id="h-sum-focus">0 (0m)</span>
+            </div>
+            <div class="history-pill short-pill" title="Total Short Breaks">
+              <span class="h-pill-icon">☕</span>
+              <span class="h-pill-val" id="h-sum-short">0 (0m)</span>
+            </div>
+            <div class="history-pill long-pill" title="Total Long Breaks">
+              <span class="h-pill-icon">🛋️</span>
+              <span class="h-pill-val" id="h-sum-long">0 (0m)</span>
+            </div>
+          </div>
+
+          <!-- Session Log Table -->
+          <div class="history-table-container">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th style="width: 32%;">Type</th>
+                  <th style="width: 22%;">Time</th>
+                  <th style="width: 22%;">Duration</th>
+                  <th style="width: 24%; text-align: right;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
