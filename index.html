@@ -310,45 +310,38 @@
         <!-- Add Task Form with MyCES Topic Integration -->
         <div class="add-task-card">
           <div class="myces-quick-row">
-            <select id="select-myces-topic" class="myces-select" title="Pick any topic from your MyCES Learning Tracks">
-              <option value="">⚡ Pick from MyCES Track...</option>
-              <optgroup label="🗄️ SQL Track" id="optgroup-sql">
-                <option value="SQL Track:Database Fundamentals">Database Fundamentals</option>
-                <option value="SQL Track:Keys & Constraints">Keys & Constraints</option>
-                <option value="SQL Track:Relationships & Joins">Relationships & Joins</option>
-                <option value="SQL Track:Self Joins">Self Joins</option>
-                <option value="SQL Track:Transactions (Commit/Rollback)">Transactions (Commit/Rollback)</option>
-                <option value="SQL Track:ACID Properties">ACID Properties</option>
-                <option value="SQL Track:Views & Stored Procedures">Views & Stored Procedures</option>
-                <option value="SQL Track:Functions & Window Functions">Functions & Window Functions</option>
-                <option value="SQL Track:Indexes & Query Optimization">Indexes & Query Optimization</option>
+            <select id="select-myces-topic" class="myces-select" title="Pick any topic from your Daily Focus Protocol">
+              <option value="">✨ Pick from Daily Protocol Track...</option>
+              <optgroup label="🗄️ SQL Practice (60m)" id="optgroup-sql">
+                <option value="SQL Practice:::Queries & LeetCode:::60">SQL Practice: Queries & LeetCode (60m)</option>
+                <option value="SQL Practice:::Window Functions & CTEs:::60">SQL Practice: Window Functions (60m)</option>
+                <option value="SQL Practice:::Joins & Optimization:::60">SQL Practice: Joins & Query Tuning (60m)</option>
+                <option value="SQL Practice:::Views & Stored Procedures:::60">SQL Practice: Views & Stored Procs (60m)</option>
               </optgroup>
-              <optgroup label="📊 Power BI Track" id="optgroup-pbi">
-                <option value="Power BI Track:Power BI Service">Power BI Service</option>
-                <option value="Power BI Track:Workspaces & Roles">Workspaces & Roles</option>
-                <option value="Power BI Track:Apps & Sharing">Apps & Sharing</option>
-                <option value="Power BI Track:Governance & RLS">Governance & RLS</option>
-                <option value="Power BI Track:Incremental Refresh">Incremental Refresh</option>
-                <option value="Power BI Track:Deployment Pipelines">Deployment Pipelines</option>
-                <option value="Power BI Track:Performance Optimization">Performance Optimization</option>
-                <option value="Power BI Track:Advanced DAX">Advanced DAX</option>
-                <option value="Power BI Track:PL-300 Preparation">PL-300 Preparation</option>
+              <optgroup label="📊 Power BI & DAX (90m)" id="optgroup-pbi">
+                <option value="Power BI & DAX:::CALCULATE & Filter Context:::90">Power BI: CALCULATE & Filter Context (90m)</option>
+                <option value="Power BI & DAX:::Data Modeling & Star Schema:::90">Power BI: Data Modeling (90m)</option>
+                <option value="Power BI & DAX:::Reports & Visuals:::90">Power BI: Reports & Visuals (90m)</option>
+                <option value="Power BI & DAX:::Time Intelligence & Advanced DAX:::90">Power BI: Advanced DAX (90m)</option>
+                <option value="Power BI & DAX:::PL-300 Preparation:::90">Power BI: PL-300 Prep (90m)</option>
               </optgroup>
-              <optgroup label="🐍 Python for Analytics" id="optgroup-python">
-                <option value="Python for Analytics Track:Pandas">Pandas</option>
-                <option value="Python for Analytics Track:NumPy (Basic)">NumPy (Basic)</option>
-                <option value="Python for Analytics Track:OpenPyXL">OpenPyXL</option>
-                <option value="Python for Analytics Track:Requests">Requests</option>
-                <option value="Python for Analytics Track:Plotly">Plotly</option>
-                <option value="Python for Analytics Track:Data Cleaning">Data Cleaning</option>
-                <option value="Python for Analytics Track:API Integration">API Integration</option>
-                <option value="Python for Analytics Track:Data Transformation">Data Transformation</option>
+              <optgroup label="🚀 Job Applications (90m)" id="optgroup-apps">
+                <option value="Job Applications:::Decision Engine Matching:::90">Job Apps: Decision Engine (90m)</option>
+                <option value="Job Applications:::Naukri Outreach & Boost:::90">Job Apps: Naukri Applications (90m)</option>
+                <option value="Job Applications:::LinkedIn Networking & InMail:::90">Job Apps: LinkedIn Networking (90m)</option>
+                <option value="Job Applications:::Direct Company Applications:::90">Job Apps: Direct Applications (90m)</option>
+              </optgroup>
+              <optgroup label="💭 Interview Prep (45m)" id="optgroup-interview">
+                <option value="Interview Prep:::Verbal Pitches & Intro:::45">Interview Prep: Verbal Pitches (45m)</option>
+                <option value="Interview Prep:::Behavioral & Scenario STAR:::45">Interview Prep: Scenarios (STAR) (45m)</option>
+                <option value="Interview Prep:::Mock Technical Interview:::45">Interview Prep: Mock Interview (45m)</option>
+                <option value="Interview Prep:::Project Storytelling Deep-Dive:::45">Interview Prep: Project Deep Dive (45m)</option>
               </optgroup>
             </select>
           </div>
 
           <div class="add-task-inputs">
-            <input type="text" id="input-task-name" placeholder="Task name (e.g. SQL Study)..." maxlength="45">
+            <input type="text" id="input-task-name" placeholder="Task name (e.g. SQL Queries)..." maxlength="45">
             <div class="duration-picker-wrap">
               <input type="number" id="input-task-mins" min="1" max="240" value="60" title="Duration in minutes">
               <span class="mins-label">min</span>
@@ -372,32 +365,103 @@
 
         <!-- Total Planned Summary Footer -->
         <div class="queue-summary-footer">
-          <span id="queue-total-time">Total Planned: 2h 00m</span>
+          <span id="queue-total-time">Total Planned: 0m</span>
           <button id="btn-clear-done" class="clear-done-btn" title="Clear completed tasks">Clear Done</button>
         </div>
 
-        <!-- Focus Analytics Card (Replacing Player on Queue Tab) -->
-        <div class="analytics-card">
-          <div class="analytics-header">
-            <span class="analytics-title">📊 Focus Insights Today</span>
-            <span id="stat-efficiency" class="stat-badge">85% Flow</span>
-          </div>
-          <div class="analytics-grid">
-            <div class="stat-box">
-              <span class="stat-val" id="stat-focus-time">0h 00m</span>
-              <span class="stat-label">Focus Done</span>
+        <!-- Daily Focus Protocol Tracker Card -->
+        <div class="protocol-card">
+          <div class="protocol-header">
+            <div class="protocol-title-wrap">
+              <span class="protocol-icon">✨</span>
+              <span class="protocol-title">Daily Focus Protocol</span>
             </div>
-            <div class="stat-box">
-              <span class="stat-val" id="stat-tasks-done">0 / 3</span>
-              <span class="stat-label">Tasks Done</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-val" id="stat-sessions-count">0</span>
-              <span class="stat-label">Sessions</span>
+            <div class="protocol-total-badge">
+              <span id="protocol-total-mins">0</span> / 285 min (<span id="protocol-total-pct">0%</span>)
             </div>
           </div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar-fill" id="analytics-progress-bar" style="width: 0%;"></div>
+          
+          <div class="protocol-overall-bar-wrap">
+            <div id="protocol-overall-bar" class="protocol-overall-bar-fill" style="width: 0%;"></div>
+          </div>
+
+          <!-- 4 Protocol Pillars Grid -->
+          <div class="protocol-grid">
+            <!-- 1. SQL Practice (60m) -->
+            <div class="protocol-pillar-card" id="pillar-sql" data-subject="SQL Practice" data-mins="60" title="Click to queue a 60m SQL Practice session">
+              <div class="pillar-top">
+                <div class="pillar-info">
+                  <span class="pillar-icon">🗄️</span>
+                  <span class="pillar-name">SQL Practice</span>
+                </div>
+                <span class="pillar-status-tag" id="pillar-status-sql">60m left</span>
+              </div>
+              <div class="pillar-sub">Queries, LeetCode, Window Fns</div>
+              <div class="pillar-progress-row">
+                <span class="pillar-progress-text"><strong id="pillar-cur-sql">0</strong> / 60m</span>
+                <span class="pillar-pct" id="pillar-pct-sql">0%</span>
+              </div>
+              <div class="pillar-bar-wrap">
+                <div class="pillar-bar-fill sql-bar" id="pillar-bar-sql" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- 2. Power BI & DAX (90m) -->
+            <div class="protocol-pillar-card" id="pillar-pbi" data-subject="Power BI & DAX" data-mins="90" title="Click to queue a 90m Power BI session">
+              <div class="pillar-top">
+                <div class="pillar-info">
+                  <span class="pillar-icon">📊</span>
+                  <span class="pillar-name">Power BI & DAX</span>
+                </div>
+                <span class="pillar-status-tag" id="pillar-status-pbi">90m left</span>
+              </div>
+              <div class="pillar-sub">CALCULATE, Modeling, Reports</div>
+              <div class="pillar-progress-row">
+                <span class="pillar-progress-text"><strong id="pillar-cur-pbi">0</strong> / 90m</span>
+                <span class="pillar-pct" id="pillar-pct-pbi">0%</span>
+              </div>
+              <div class="pillar-bar-wrap">
+                <div class="pillar-bar-fill pbi-bar" id="pillar-bar-pbi" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- 3. Job Applications (90m) -->
+            <div class="protocol-pillar-card" id="pillar-apps" data-subject="Job Applications" data-mins="90" title="Click to queue a 90m Job Applications session">
+              <div class="pillar-top">
+                <div class="pillar-info">
+                  <span class="pillar-icon">🚀</span>
+                  <span class="pillar-name">Job Applications</span>
+                </div>
+                <span class="pillar-status-tag" id="pillar-status-apps">90m left</span>
+              </div>
+              <div class="pillar-sub">Decision Engine, Naukri, LinkedIn</div>
+              <div class="pillar-progress-row">
+                <span class="pillar-progress-text"><strong id="pillar-cur-apps">0</strong> / 90m</span>
+                <span class="pillar-pct" id="pillar-pct-apps">0%</span>
+              </div>
+              <div class="pillar-bar-wrap">
+                <div class="pillar-bar-fill apps-bar" id="pillar-bar-apps" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- 4. Interview Prep (45m) -->
+            <div class="protocol-pillar-card" id="pillar-interview" data-subject="Interview Prep" data-mins="45" title="Click to queue a 45m Interview Prep session">
+              <div class="pillar-top">
+                <div class="pillar-info">
+                  <span class="pillar-icon">💭</span>
+                  <span class="pillar-name">Interview Prep</span>
+                </div>
+                <span class="pillar-status-tag" id="pillar-status-interview">45m left</span>
+              </div>
+              <div class="pillar-sub">Verbal Pitches, Scenarios, Mock</div>
+              <div class="pillar-progress-row">
+                <span class="pillar-progress-text"><strong id="pillar-cur-interview">0</strong> / 45m</span>
+                <span class="pillar-pct" id="pillar-pct-interview">0%</span>
+              </div>
+              <div class="pillar-bar-wrap">
+                <div class="pillar-bar-fill interview-bar" id="pillar-bar-interview" style="width: 0%;"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

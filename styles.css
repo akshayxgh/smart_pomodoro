@@ -805,6 +805,198 @@ body.theme-light .timer-time {
 }
 
 /* ==================================================== */
+/* Daily Focus Protocol Card & 4 Pillars */
+/* ==================================================== */
+.protocol-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-widget-border);
+  border-radius: var(--radius-md);
+  padding: 8px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.protocol-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.protocol-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.protocol-icon {
+  font-size: 10px;
+}
+
+.protocol-title {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.2px;
+}
+
+.protocol-total-badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.protocol-overall-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-widget-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.protocol-overall-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #06b6d4, #8b5cf6);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+}
+
+.protocol-pillar-card {
+  background: var(--bg-nav);
+  border: 1px solid var(--bg-widget-border);
+  border-radius: 6px;
+  padding: 5px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.protocol-pillar-card:hover {
+  background: var(--bg-hover);
+  border-color: rgba(147, 51, 234, 0.35);
+  transform: translateY(-1px);
+}
+
+.pillar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pillar-info {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pillar-icon {
+  font-size: 9px;
+}
+
+.pillar-name {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pillar-status-tag {
+  font-size: 7px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5px 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.pillar-status-tag.done {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-weight: 800;
+}
+
+.pillar-sub {
+  font-size: 6.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pillar-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.pillar-progress-text {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  color: var(--text-muted);
+}
+
+.pillar-progress-text strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.pillar-pct {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.pillar-bar-wrap {
+  width: 100%;
+  height: 3px;
+  background: var(--bg-widget-border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 1px;
+}
+
+.pillar-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.pillar-bar-fill.sql-bar {
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+}
+
+.pillar-bar-fill.pbi-bar {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.pillar-bar-fill.apps-bar {
+  background: linear-gradient(90deg, #06b6d4, #3b82f6);
+}
+
+.pillar-bar-fill.interview-bar {
+  background: linear-gradient(90deg, #8b5cf6, #ec4899);
+}
+
+/* ==================================================== */
 /* Music Card Section */
 /* ==================================================== */
 .music-card {

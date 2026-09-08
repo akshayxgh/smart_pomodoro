@@ -495,18 +495,107 @@ function saveDailyStats() {
   updateAnalyticsUI();
 }
 
+// ----------------------------------------------------
+// Daily Focus Protocol Tracker Engine (285 min total)
+// ----------------------------------------------------
+const PROTOCOL_TARGETS = {
+  sql: 60,
+  pbi: 90,
+  apps: 90,
+  interview: 45,
+  total: 285
+};
+
+let protocolDaily = JSON.parse(localStorage.getItem('focus_flow_protocol_daily')) || {
+  date: new Date().toDateString(),
+  sql: 0,
+  pbi: 0,
+  apps: 0,
+  interview: 0
+};
+
+if (protocolDaily.date !== new Date().toDateString()) {
+  protocolDaily = {
+    date: new Date().toDateString(),
+    sql: 0,
+    pbi: 0,
+    apps: 0,
+    interview: 0
+  };
+  localStorage.setItem('focus_flow_protocol_daily', JSON.stringify(protocolDaily));
+}
+
+function saveProtocolDaily() {
+  localStorage.setItem('focus_flow_protocol_daily', JSON.stringify(protocolDaily));
+  updateProtocolUI();
+}
+
+function updateProtocolUI() {
+  const elTotalMins = document.getElementById('protocol-total-mins');
+  const elTotalPct = document.getElementById('protocol-total-pct');
+  const elOverallBar = document.getElementById('protocol-overall-bar');
+
+  const totalDone = protocolDaily.sql + protocolDaily.pbi + protocolDaily.apps + protocolDaily.interview;
+  const overallPct = Math.min(100, Math.round((totalDone / PROTOCOL_TARGETS.total) * 100));
+
+  if (elTotalMins) elTotalMins.textContent = totalDone;
+  if (elTotalPct) elTotalPct.textContent = `${overallPct}%`;
+  if (elOverallBar) elOverallBar.style.width = `${overallPct}%`;
+
+  // Update 4 Pillars
+  const pillars = [
+    { key: 'sql', curId: 'pillar-cur-sql', pctId: 'pillar-pct-sql', barId: 'pillar-bar-sql', statusId: 'pillar-status-sql', target: PROTOCOL_TARGETS.sql },
+    { key: 'pbi', curId: 'pillar-cur-pbi', pctId: 'pillar-pct-pbi', barId: 'pillar-bar-pbi', statusId: 'pillar-status-pbi', target: PROTOCOL_TARGETS.pbi },
+    { key: 'apps', curId: 'pillar-cur-apps', pctId: 'pillar-pct-apps', barId: 'pillar-bar-apps', statusId: 'pillar-status-apps', target: PROTOCOL_TARGETS.apps },
+    { key: 'interview', curId: 'pillar-cur-interview', pctId: 'pillar-pct-interview', barId: 'pillar-bar-interview', statusId: 'pillar-status-interview', target: PROTOCOL_TARGETS.interview }
+  ];
+
+  pillars.forEach(p => {
+    const val = protocolDaily[p.key] || 0;
+    const pct = Math.min(100, Math.round((val / p.target) * 100));
+    const left = Math.max(0, p.target - val);
+
+    const elCur = document.getElementById(p.curId);
+    const elPct = document.getElementById(p.pctId);
+    const elBar = document.getElementById(p.barId);
+    const elStatus = document.getElementById(p.statusId);
+
+    if (elCur) elCur.textContent = val;
+    if (elPct) elPct.textContent = `${pct}%`;
+    if (elBar) elBar.style.width = `${pct}%`;
+    if (elStatus) {
+      if (val >= p.target) {
+        elStatus.textContent = '@Done';
+        elStatus.className = 'pillar-status-tag done';
+      } else {
+        elStatus.textContent = `${left}m left`;
+        elStatus.className = 'pillar-status-tag';
+      }
+    }
+  });
+}
+
+function recordProtocolProgress(taskOrName, mins) {
+  if (!mins || mins <= 0) return;
+  const name = (typeof taskOrName === 'string' ? taskOrName : (taskOrName ? (taskOrName.mycesSubject || taskOrName.title) : '')).toLowerCase();
+
+  if (name.includes('sql') || name.includes('database') || name.includes('query') || name.includes('leetcode')) {
+    protocolDaily.sql += mins;
+  } else if (name.includes('power bi') || name.includes('dax') || name.includes('pbi') || name.includes('calculate') || name.includes('modeling')) {
+    protocolDaily.pbi += mins;
+  } else if (name.includes('application') || name.includes('job') || name.includes('naukri') || name.includes('linkedin') || name.includes('decision engine')) {
+    protocolDaily.apps += mins;
+  } else if (name.includes('interview') || name.includes('pitch') || name.includes('mock') || name.includes('scenario')) {
+    protocolDaily.interview += mins;
+  } else {
+    protocolDaily.sql += mins;
+  }
+
+  saveProtocolDaily();
+}
+
 function updateAnalyticsUI() {
-  const hours = Math.floor(dailyStats.totalFocusSeconds / 3600);
-  const mins = Math.floor((dailyStats.totalFocusSeconds % 3600) / 60);
-  statFocusTime.textContent = `${hours}h ${mins.toString().padStart(2, '0')}m`;
-
-  const doneTasks = queueTasks.filter(t => t.completed).length;
-  statTasksDone.textContent = `${doneTasks} / ${queueTasks.length}`;
-  statSessionsCount.textContent = dailyStats.sessionsCompleted;
-
-  const pct = queueTasks.length > 0 ? Math.round((doneTasks / queueTasks.length) * 100) : 0;
-  analyticsProgressBar.style.width = `${pct}%`;
-  statEfficiency.textContent = `${pct}% Flow`;
+  updateProtocolUI();
 }
 
 // ----------------------------------------------------
@@ -1155,6 +1244,7 @@ function completeCurrentSession() {
     ? Math.round(state.totalTime / 60) 
     : (activeTask ? activeTask.minutes : 60);
   logSessionInterval('focus', activeTask ? activeTask.title : 'Pomodoro Focus', focusDuration, 'completed');
+  recordProtocolProgress(activeTask ? activeTask : 'Pomodoro Focus', focusDuration);
 
   if (state.pacingMode === 'pomo') {
     state.taskRemainingSeconds = Math.max(0, state.taskRemainingSeconds - state.totalTime);
@@ -1713,27 +1803,85 @@ async function fetchMyCESTracks() {
   }
 }
 
-function populateMyCESTopicDropdown(tracks) {
+const DAILY_PROTOCOL_OPTIONS = [
+  {
+    label: '🗄️ SQL Practice (60m)',
+    mins: 60,
+    topics: [
+      { name: 'Queries & LeetCode', val: 'SQL Practice:::Queries & LeetCode:::60' },
+      { name: 'Window Functions & CTEs', val: 'SQL Practice:::Window Functions & CTEs:::60' },
+      { name: 'Joins & Optimization', val: 'SQL Practice:::Joins & Optimization:::60' },
+      { name: 'Views & Stored Procedures', val: 'SQL Practice:::Views & Stored Procedures:::60' }
+    ]
+  },
+  {
+    label: '📊 Power BI & DAX (90m)',
+    mins: 90,
+    topics: [
+      { name: 'CALCULATE & Filter Context', val: 'Power BI & DAX:::CALCULATE & Filter Context:::90' },
+      { name: 'Data Modeling & Star Schema', val: 'Power BI & DAX:::Data Modeling & Star Schema:::90' },
+      { name: 'Reports & Visuals', val: 'Power BI & DAX:::Reports & Visuals:::90' },
+      { name: 'Time Intelligence & Advanced DAX', val: 'Power BI & DAX:::Time Intelligence & Advanced DAX:::90' },
+      { name: 'PL-300 Preparation', val: 'Power BI & DAX:::PL-300 Preparation:::90' }
+    ]
+  },
+  {
+    label: '🚀 Job Applications (90m)',
+    mins: 90,
+    topics: [
+      { name: 'Decision Engine Matching', val: 'Job Applications:::Decision Engine Matching:::90' },
+      { name: 'Naukri Outreach & Boost', val: 'Job Applications:::Naukri Outreach & Boost:::90' },
+      { name: 'LinkedIn Networking & InMail', val: 'Job Applications:::LinkedIn Networking & InMail:::90' },
+      { name: 'Direct Company Applications', val: 'Job Applications:::Direct Company Applications:::90' }
+    ]
+  },
+  {
+    label: '💭 Interview Prep (45m)',
+    mins: 45,
+    topics: [
+      { name: 'Verbal Pitches & Intro', val: 'Interview Prep:::Verbal Pitches & Intro:::45' },
+      { name: 'Behavioral & Scenario (STAR)', val: 'Interview Prep:::Behavioral & Scenario STAR:::45' },
+      { name: 'Mock Technical Interview', val: 'Interview Prep:::Mock Technical Interview:::45' },
+      { name: 'Project Storytelling Deep-Dive', val: 'Interview Prep:::Project Storytelling Deep-Dive:::45' }
+    ]
+  }
+];
+
+function populateMyCESTopicDropdown(extraTracks) {
   if (!selectMycesTopic) return;
-  selectMycesTopic.innerHTML = '<option value="">⚡ Pick from MyCES Track...</option>';
+  selectMycesTopic.innerHTML = '<option value="">✨ Pick from Daily Protocol Track...</option>';
   
-  tracks.forEach(t => {
+  // 1. Daily Protocol Pillars
+  DAILY_PROTOCOL_OPTIONS.forEach(group => {
     const optgroup = document.createElement('optgroup');
-    const icon = t.name.includes('SQL') ? '🗄️ ' : (t.name.includes('Power') ? '📊 ' : '🐍 ');
-    optgroup.label = `${icon}${t.name}`;
-
-    if (Array.isArray(t.modules)) {
-      t.modules.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = `${t.name}:::${m.name}`;
-        const statusIcon = m.status === 'Completed' ? '✅ ' : (m.status === 'In Progress' ? '⏳ ' : '');
-        opt.textContent = `${statusIcon}${m.name}`;
-        optgroup.appendChild(opt);
-      });
-    }
-
+    optgroup.label = group.label;
+    group.topics.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.val;
+      opt.textContent = `${group.label.split(' ')[1]}: ${t.name} (${group.mins}m)`;
+      optgroup.appendChild(opt);
+    });
     selectMycesTopic.appendChild(optgroup);
   });
+
+  // 2. Extra tracks from MyCES Supabase if available
+  if (Array.isArray(extraTracks)) {
+    extraTracks.forEach(t => {
+      if (t.name && !t.name.toLowerCase().includes('sql') && !t.name.toLowerCase().includes('power')) {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = `📚 ${t.name}`;
+        if (Array.isArray(t.modules)) {
+          t.modules.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = `${t.name}:::${m.name}:::45`;
+            opt.textContent = `${m.name} (45m)`;
+            optgroup.appendChild(opt);
+          });
+        }
+        selectMycesTopic.appendChild(optgroup);
+      }
+    });
+  }
 }
 
 // Log study session & update track module in Supabase
@@ -1842,11 +1990,30 @@ if (selectMycesTopic) {
     const parts = val.split(':::');
     const subject = parts[0];
     const topic = parts[1];
+    const mins = parts[2] ? parseInt(parts[2], 10) : 60;
     inputTaskName.value = topic;
     inputTaskName.dataset.mycesSubject = subject;
     inputTaskName.dataset.mycesTopic = topic;
+    if (inputTaskMins) inputTaskMins.value = mins;
   });
 }
+
+// Protocol Pillar Card Click Listeners (Quick selection & time preset)
+document.querySelectorAll('.protocol-pillar-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const subject = card.dataset.subject;
+    const mins = card.dataset.mins || '60';
+    if (inputTaskName) {
+      inputTaskName.value = `${subject} Practice`;
+      inputTaskName.dataset.mycesSubject = subject;
+      inputTaskName.dataset.mycesTopic = `${subject} Practice`;
+    }
+    if (inputTaskMins) {
+      inputTaskMins.value = mins;
+    }
+    showMyCESToast(`Selected ${subject} (${mins}m) - Click '+ Add to Queue'`);
+  });
+});
 
 if (btnRefreshMyces) {
   btnRefreshMyces.addEventListener('click', async () => {
@@ -1901,7 +2068,7 @@ if (initialTask) {
   saveQueue();
 }
 renderQueue();
-updateAnalyticsUI();
+updateProtocolUI();
 renderHistoryTable();
 
 // Automatically wipe session history log on app exit
