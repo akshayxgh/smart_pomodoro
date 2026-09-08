@@ -1777,8 +1777,8 @@ function showMyCESToast(msg) {
   }, 3500);
 }
 
-// Fetch Learning Tracks from Supabase app_state
-async function fetchMyCESTracks() {
+// Fetch Learning Tracks & Bidirectional Sync from Supabase app_state
+async function syncMyCESBidirectional(isManual = false) {
   try {
     const res = await fetch(`${MYCES_CONFIG.supabaseUrl}/rest/v1/app_state?select=data&user_id=eq.${MYCES_CONFIG.userId}`, {
       headers: {
@@ -1788,19 +1788,87 @@ async function fetchMyCESTracks() {
     });
     if (!res.ok) throw new Error('Network response not ok');
     const json = await res.json();
-    if (json && json[0] && json[0].data && json[0].data.learningTracks) {
-      const tracks = json[0].data.learningTracks;
-      localStorage.setItem('myces_cached_tracks', JSON.stringify(tracks));
-      populateMyCESTopicDropdown(tracks);
-      if (mycesStatusText) mycesStatusText.textContent = 'Connected (Akshay) • Synced';
-      return tracks;
+    if (!json || !json[0] || !json[0].data) return;
+
+    const fullData = json[0].data;
+    const todayDate = new Date().toISOString().split('T')[0];
+
+    // 1. Update Learning Tracks in Dropdown
+    if (Array.isArray(fullData.learningTracks)) {
+      localStorage.setItem('myces_cached_tracks', JSON.stringify(fullData.learningTracks));
+      populateMyCESTopicDropdown(fullData.learningTracks);
+    }
+
+    // 2. Compute today's minutes from Supabase studyLogs
+    const studyLogs = Array.isArray(fullData.studyLogs) ? fullData.studyLogs : [];
+    const todayLogs = studyLogs.filter(l => l.date === todayDate);
+
+    let remoteMins = {
+      sql: 0,
+      pbi: 0,
+      apps: 0,
+      interview: 0
+    };
+
+    todayLogs.forEach(log => {
+      const hours = parseFloat(log.actualHours || log.plannedHours || 0);
+      const mins = Math.round(hours * 60) || 30;
+      const text = `${log.subject || ''} ${log.topic || ''} ${log.notes || ''}`.toLowerCase();
+
+      if (text.includes('sql') || text.includes('database') || text.includes('query') || text.includes('leetcode')) {
+        remoteMins.sql += mins;
+      } else if (text.includes('power bi') || text.includes('dax') || text.includes('pbi') || text.includes('calculate') || text.includes('modeling') || text.includes('pl-300')) {
+        remoteMins.pbi += mins;
+      } else if (text.includes('application') || text.includes('job') || text.includes('naukri') || text.includes('linkedin') || text.includes('decision engine')) {
+        remoteMins.apps += mins;
+      } else if (text.includes('interview') || text.includes('pitch') || text.includes('mock') || text.includes('scenario') || text.includes('star')) {
+        remoteMins.interview += mins;
+      } else {
+        remoteMins.sql += mins;
+      }
+    });
+
+    // Also check fullData.dailyProtocol if stored directly
+    if (fullData.dailyProtocol && fullData.dailyProtocol.date === new Date().toDateString()) {
+      remoteMins.sql = Math.max(remoteMins.sql, fullData.dailyProtocol.sql || 0);
+      remoteMins.pbi = Math.max(remoteMins.pbi, fullData.dailyProtocol.pbi || 0);
+      remoteMins.apps = Math.max(remoteMins.apps, fullData.dailyProtocol.apps || 0);
+      remoteMins.interview = Math.max(remoteMins.interview, fullData.dailyProtocol.interview || 0);
+    }
+
+    // Merge: take maximum of local & remote to preserve any offline completed focus sessions
+    let changed = false;
+    ['sql', 'pbi', 'apps', 'interview'].forEach(key => {
+      if (remoteMins[key] > protocolDaily[key]) {
+        protocolDaily[key] = remoteMins[key];
+        changed = true;
+      }
+    });
+
+    if (changed || isManual) {
+      saveProtocolDaily();
+    }
+
+    if (mycesStatusText) {
+      mycesStatusText.textContent = 'Connected (Akshay) • Synced ⚡';
+    }
+
+    if (isManual) {
+      const totalDone = protocolDaily.sql + protocolDaily.pbi + protocolDaily.apps + protocolDaily.interview;
+      showMyCESToast(`⚡ Synced with MyCES! ${totalDone}/285m completed today`);
     }
   } catch (err) {
-    console.warn('Using cached MyCES tracks:', err);
-    if (mycesStatusText) mycesStatusText.textContent = 'Connected (Akshay) • Offline';
+    console.warn('Bidirectional MyCES sync error:', err);
+    if (mycesStatusText) {
+      mycesStatusText.textContent = 'Connected (Akshay) • Offline';
+    }
     const cached = JSON.parse(localStorage.getItem('myces_cached_tracks'));
     if (cached) populateMyCESTopicDropdown(cached);
   }
+}
+
+async function fetchMyCESTracks() {
+  return syncMyCESBidirectional();
 }
 
 const DAILY_PROTOCOL_OPTIONS = [
@@ -1944,7 +2012,17 @@ async function logStudySessionToMyCES({ subject, topic, hours, notes }) {
       });
     }
 
-    // 4. Send PATCH to Supabase
+    // 4. Update bidirectional dailyProtocol in app_state
+    fullData.dailyProtocol = {
+      date: new Date().toDateString(),
+      sql: protocolDaily.sql,
+      pbi: protocolDaily.pbi,
+      apps: protocolDaily.apps,
+      interview: protocolDaily.interview,
+      updatedAt: new Date().toISOString()
+    };
+
+    // 5. Send PATCH to Supabase
     await fetch(`${MYCES_CONFIG.supabaseUrl}/rest/v1/app_state?user_id=eq.${MYCES_CONFIG.userId}`, {
       method: 'PATCH',
       headers: {
@@ -2026,9 +2104,8 @@ document.querySelectorAll('.protocol-pillar-card').forEach(card => {
 if (btnRefreshMyces) {
   btnRefreshMyces.addEventListener('click', async () => {
     btnRefreshMyces.style.transform = 'rotate(360deg)';
-    await fetchMyCESTracks();
+    await syncMyCESBidirectional(true);
     setTimeout(() => { btnRefreshMyces.style.transform = ''; }, 600);
-    showMyCESToast('MyCES tracks updated!');
   });
 }
 
@@ -2066,8 +2143,14 @@ if (btnPacingDeep) btnPacingDeep.classList.toggle('active', state.pacingMode ===
 if (btnPacingPomo) btnPacingPomo.classList.toggle('active', state.pacingMode === 'pomo');
 if (rowPomoSprintLen) rowPomoSprintLen.style.display = state.pacingMode === 'pomo' ? 'flex' : 'none';
 
-// Fetch live MyCES tracks on startup
-fetchMyCESTracks();
+// Initial bidirectional sync & polling
+syncMyCESBidirectional();
+setInterval(syncMyCESBidirectional, 60000); // Periodic 60s background sync
+
+// Window focus listener for instant sync
+window.addEventListener('focus', () => {
+  syncMyCESBidirectional();
+});
 
 const initialTask = getActiveTask();
 if (initialTask) {
