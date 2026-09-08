@@ -1807,7 +1807,9 @@ const DAILY_PROTOCOL_OPTIONS = [
   {
     label: '🗄️ SQL Practice (60m)',
     mins: 60,
+    prefix: 'SQL',
     topics: [
+      { name: '🗄️ SQL Practice (General / Unspecified)', val: 'SQL Practice:::SQL Practice:::60', isGeneral: true },
       { name: 'Queries & LeetCode', val: 'SQL Practice:::Queries & LeetCode:::60' },
       { name: 'Window Functions & CTEs', val: 'SQL Practice:::Window Functions & CTEs:::60' },
       { name: 'Joins & Optimization', val: 'SQL Practice:::Joins & Optimization:::60' },
@@ -1817,7 +1819,9 @@ const DAILY_PROTOCOL_OPTIONS = [
   {
     label: '📊 Power BI & DAX (90m)',
     mins: 90,
+    prefix: 'Power',
     topics: [
+      { name: '📊 Power BI & DAX (General / Unspecified)', val: 'Power BI & DAX:::Power BI & DAX:::90', isGeneral: true },
       { name: 'CALCULATE & Filter Context', val: 'Power BI & DAX:::CALCULATE & Filter Context:::90' },
       { name: 'Data Modeling & Star Schema', val: 'Power BI & DAX:::Data Modeling & Star Schema:::90' },
       { name: 'Reports & Visuals', val: 'Power BI & DAX:::Reports & Visuals:::90' },
@@ -1828,7 +1832,9 @@ const DAILY_PROTOCOL_OPTIONS = [
   {
     label: '🚀 Job Applications (90m)',
     mins: 90,
+    prefix: 'Job',
     topics: [
+      { name: '🚀 Job Applications (General / Unspecified)', val: 'Job Applications:::Job Applications:::90', isGeneral: true },
       { name: 'Decision Engine Matching', val: 'Job Applications:::Decision Engine Matching:::90' },
       { name: 'Naukri Outreach & Boost', val: 'Job Applications:::Naukri Outreach & Boost:::90' },
       { name: 'LinkedIn Networking & InMail', val: 'Job Applications:::LinkedIn Networking & InMail:::90' },
@@ -1838,7 +1844,9 @@ const DAILY_PROTOCOL_OPTIONS = [
   {
     label: '💭 Interview Prep (45m)',
     mins: 45,
+    prefix: 'Interview',
     topics: [
+      { name: '💭 Interview Prep (General / Unspecified)', val: 'Interview Prep:::Interview Prep:::45', isGeneral: true },
       { name: 'Verbal Pitches & Intro', val: 'Interview Prep:::Verbal Pitches & Intro:::45' },
       { name: 'Behavioral & Scenario (STAR)', val: 'Interview Prep:::Behavioral & Scenario STAR:::45' },
       { name: 'Mock Technical Interview', val: 'Interview Prep:::Mock Technical Interview:::45' },
@@ -1858,7 +1866,7 @@ function populateMyCESTopicDropdown(extraTracks) {
     group.topics.forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.val;
-      opt.textContent = `${group.label.split(' ')[1]}: ${t.name} (${group.mins}m)`;
+      opt.textContent = t.isGeneral ? `${t.name} (${group.mins}m)` : `${group.prefix}: ${t.name} (${group.mins}m)`;
       optgroup.appendChild(opt);
     });
     selectMycesTopic.appendChild(optgroup);
