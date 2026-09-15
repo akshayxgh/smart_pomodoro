@@ -1,17 +1,32 @@
 {
-  "name": "radiant-hopper",
+  "name": "focus-flow",
+  "productName": "Focus Flow",
   "version": "1.0.0",
-  "description": "",
+  "description": "Smart Pomodoro & Daily Focus Protocol Desktop App",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.akshay.focusflow",
+    "productName": "Focus Flow",
+    "win": {
+      "target": "portable"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable.exe"
+    },
+    "directories": {
+      "output": "dist"
+    }
   },
   "keywords": [],
-  "author": "",
+  "author": "Akshay",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^44.1.0"
+    "electron": "^44.1.0",
+    "electron-builder": "^26.15.3"
   }
 }
