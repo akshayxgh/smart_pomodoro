@@ -497,28 +497,38 @@ function saveDailyStats() {
 
 // ----------------------------------------------------
 // Daily Focus Protocol Tracker Engine (285 min total)
-// ----------------------------------------------------
+function getLocalDateKey() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 const PROTOCOL_TARGETS = {
-  sql: 60,
+  sql: 45,
   pbi: 90,
-  apps: 90,
-  interview: 45,
-  total: 285
+  python: 30,
+  apps: 30,
+  interview: 30,
+  total: 225
 };
 
 let protocolDaily = JSON.parse(localStorage.getItem('focus_flow_protocol_daily')) || {
-  date: new Date().toDateString(),
+  date: getLocalDateKey(),
   sql: 0,
   pbi: 0,
+  python: 0,
   apps: 0,
   interview: 0
 };
 
-if (protocolDaily.date !== new Date().toDateString()) {
+if (protocolDaily.date !== getLocalDateKey() && protocolDaily.date !== new Date().toDateString()) {
   protocolDaily = {
-    date: new Date().toDateString(),
+    date: getLocalDateKey(),
     sql: 0,
     pbi: 0,
+    python: 0,
     apps: 0,
     interview: 0
   };
@@ -535,17 +545,18 @@ function updateProtocolUI() {
   const elTotalPct = document.getElementById('protocol-total-pct');
   const elOverallBar = document.getElementById('protocol-overall-bar');
 
-  const totalDone = protocolDaily.sql + protocolDaily.pbi + protocolDaily.apps + protocolDaily.interview;
+  const totalDone = (protocolDaily.sql || 0) + (protocolDaily.pbi || 0) + (protocolDaily.python || 0) + (protocolDaily.apps || 0) + (protocolDaily.interview || 0);
   const overallPct = Math.min(100, Math.round((totalDone / PROTOCOL_TARGETS.total) * 100));
 
   if (elTotalMins) elTotalMins.textContent = totalDone;
   if (elTotalPct) elTotalPct.textContent = `${overallPct}%`;
   if (elOverallBar) elOverallBar.style.width = `${overallPct}%`;
 
-  // Update 4 Pillars
+  // Update 5 Pillars
   const pillars = [
     { key: 'sql', curId: 'pillar-cur-sql', pctId: 'pillar-pct-sql', barId: 'pillar-bar-sql', statusId: 'pillar-status-sql', target: PROTOCOL_TARGETS.sql },
     { key: 'pbi', curId: 'pillar-cur-pbi', pctId: 'pillar-pct-pbi', barId: 'pillar-bar-pbi', statusId: 'pillar-status-pbi', target: PROTOCOL_TARGETS.pbi },
+    { key: 'python', curId: 'pillar-cur-python', pctId: 'pillar-pct-python', barId: 'pillar-bar-python', statusId: 'pillar-status-python', target: PROTOCOL_TARGETS.python },
     { key: 'apps', curId: 'pillar-cur-apps', pctId: 'pillar-pct-apps', barId: 'pillar-bar-apps', statusId: 'pillar-status-apps', target: PROTOCOL_TARGETS.apps },
     { key: 'interview', curId: 'pillar-cur-interview', pctId: 'pillar-pct-interview', barId: 'pillar-bar-interview', statusId: 'pillar-status-interview', target: PROTOCOL_TARGETS.interview }
   ];
@@ -577,15 +588,17 @@ function updateProtocolUI() {
 
 function recordProtocolProgress(taskOrName, mins) {
   if (!mins || mins <= 0) return;
-  const name = (typeof taskOrName === 'string' ? taskOrName : (taskOrName ? (taskOrName.mycesSubject || taskOrName.title) : '')).toLowerCase();
+  const name = (typeof taskOrName === 'string' ? taskOrName : (taskOrName ? (`${taskOrName.mycesSubject || ''} ${taskOrName.mycesTopic || ''} ${taskOrName.title || ''}`) : '')).toLowerCase();
 
-  if (name.includes('sql') || name.includes('database') || name.includes('query') || name.includes('leetcode')) {
-    protocolDaily.sql += mins;
-  } else if (name.includes('power bi') || name.includes('dax') || name.includes('pbi') || name.includes('calculate') || name.includes('modeling')) {
+  if (name.includes('power bi') || name.includes('dax') || name.includes('pbi') || name.includes('calculate') || name.includes('modeling') || name.includes('pl-300') || name.includes('window, matchby')) {
     protocolDaily.pbi += mins;
+  } else if (name.includes('python') || name.includes('pandas') || name.includes('numpy') || name.includes('scripting') || name.includes('openpyxl')) {
+    protocolDaily.python = (protocolDaily.python || 0) + mins;
+  } else if (name.includes('sql') || name.includes('database') || name.includes('query') || name.includes('leetcode')) {
+    protocolDaily.sql += mins;
   } else if (name.includes('application') || name.includes('job') || name.includes('naukri') || name.includes('linkedin') || name.includes('decision engine')) {
     protocolDaily.apps += mins;
-  } else if (name.includes('interview') || name.includes('pitch') || name.includes('mock') || name.includes('scenario')) {
+  } else if (name.includes('interview') || name.includes('pitch') || name.includes('mock') || name.includes('scenario') || name.includes('star')) {
     protocolDaily.interview += mins;
   } else {
     protocolDaily.sql += mins;
@@ -1791,7 +1804,9 @@ async function syncMyCESBidirectional(isManual = false) {
     if (!json || !json[0] || !json[0].data) return;
 
     const fullData = json[0].data;
-    const todayDate = new Date().toISOString().split('T')[0];
+    const todayLocal = getLocalDateKey();
+    const todayIso = new Date().toISOString().split('T')[0];
+    const todayDateString = new Date().toDateString();
 
     // 1. Update Learning Tracks in Dropdown
     if (Array.isArray(fullData.learningTracks)) {
@@ -1801,11 +1816,12 @@ async function syncMyCESBidirectional(isManual = false) {
 
     // 2. Compute today's minutes from Supabase studyLogs
     const studyLogs = Array.isArray(fullData.studyLogs) ? fullData.studyLogs : [];
-    const todayLogs = studyLogs.filter(l => l.date === todayDate);
+    const todayLogs = studyLogs.filter(l => (l.date === todayLocal || l.date === todayIso));
 
     let remoteMins = {
       sql: 0,
       pbi: 0,
+      python: 0,
       apps: 0,
       interview: 0
     };
@@ -1815,10 +1831,12 @@ async function syncMyCESBidirectional(isManual = false) {
       const mins = Math.round(hours * 60) || 30;
       const text = `${log.subject || ''} ${log.topic || ''} ${log.notes || ''}`.toLowerCase();
 
-      if (text.includes('sql') || text.includes('database') || text.includes('query') || text.includes('leetcode')) {
-        remoteMins.sql += mins;
-      } else if (text.includes('power bi') || text.includes('dax') || text.includes('pbi') || text.includes('calculate') || text.includes('modeling') || text.includes('pl-300')) {
+      if (text.includes('power bi') || text.includes('dax') || text.includes('pbi') || text.includes('calculate') || text.includes('modeling') || text.includes('pl-300') || text.includes('window, matchby')) {
         remoteMins.pbi += mins;
+      } else if (text.includes('python') || text.includes('pandas') || text.includes('numpy') || text.includes('scripting') || text.includes('openpyxl')) {
+        remoteMins.python += mins;
+      } else if (text.includes('sql') || text.includes('database') || text.includes('query') || text.includes('leetcode')) {
+        remoteMins.sql += mins;
       } else if (text.includes('application') || text.includes('job') || text.includes('naukri') || text.includes('linkedin') || text.includes('decision engine')) {
         remoteMins.apps += mins;
       } else if (text.includes('interview') || text.includes('pitch') || text.includes('mock') || text.includes('scenario') || text.includes('star')) {
@@ -1829,17 +1847,21 @@ async function syncMyCESBidirectional(isManual = false) {
     });
 
     // Also check fullData.dailyProtocol if stored directly
-    if (fullData.dailyProtocol && fullData.dailyProtocol.date === new Date().toDateString()) {
-      remoteMins.sql = Math.max(remoteMins.sql, fullData.dailyProtocol.sql || 0);
-      remoteMins.pbi = Math.max(remoteMins.pbi, fullData.dailyProtocol.pbi || 0);
-      remoteMins.apps = Math.max(remoteMins.apps, fullData.dailyProtocol.apps || 0);
-      remoteMins.interview = Math.max(remoteMins.interview, fullData.dailyProtocol.interview || 0);
+    if (fullData.dailyProtocol) {
+      const dp = fullData.dailyProtocol;
+      if (dp.date === todayLocal || dp.date === todayIso || dp.date === todayDateString) {
+        remoteMins.sql = Math.max(remoteMins.sql, dp.sql || 0);
+        remoteMins.pbi = Math.max(remoteMins.pbi, dp.pbi || 0);
+        remoteMins.python = Math.max(remoteMins.python, dp.python || 0);
+        remoteMins.apps = Math.max(remoteMins.apps, dp.apps || 0);
+        remoteMins.interview = Math.max(remoteMins.interview, dp.interview || 0);
+      }
     }
 
     // Merge: take maximum of local & remote to preserve any offline completed focus sessions
     let changed = false;
-    ['sql', 'pbi', 'apps', 'interview'].forEach(key => {
-      if (remoteMins[key] > protocolDaily[key]) {
+    ['sql', 'pbi', 'python', 'apps', 'interview'].forEach(key => {
+      if (remoteMins[key] > (protocolDaily[key] || 0)) {
         protocolDaily[key] = remoteMins[key];
         changed = true;
       }
@@ -1854,8 +1876,8 @@ async function syncMyCESBidirectional(isManual = false) {
     }
 
     if (isManual) {
-      const totalDone = protocolDaily.sql + protocolDaily.pbi + protocolDaily.apps + protocolDaily.interview;
-      showMyCESToast(`⚡ Synced with MyCES! ${totalDone}/285m completed today`);
+      const totalDone = (protocolDaily.sql || 0) + (protocolDaily.pbi || 0) + (protocolDaily.python || 0) + (protocolDaily.apps || 0) + (protocolDaily.interview || 0);
+      showMyCESToast(`⚡ Synced with MyCES! ${totalDone}/225m completed today`);
     }
   } catch (err) {
     console.warn('Bidirectional MyCES sync error:', err);
@@ -1873,15 +1895,15 @@ async function fetchMyCESTracks() {
 
 const DAILY_PROTOCOL_OPTIONS = [
   {
-    label: '🗄️ SQL Practice (60m)',
-    mins: 60,
+    label: '🗄️ SQL Practice (45m)',
+    mins: 45,
     prefix: 'SQL',
     topics: [
-      { name: '🗄️ SQL Practice (General / Unspecified)', val: 'SQL Practice:::SQL Practice:::60', isGeneral: true },
-      { name: 'Queries & LeetCode', val: 'SQL Practice:::Queries & LeetCode:::60' },
-      { name: 'Window Functions & CTEs', val: 'SQL Practice:::Window Functions & CTEs:::60' },
-      { name: 'Joins & Optimization', val: 'SQL Practice:::Joins & Optimization:::60' },
-      { name: 'Views & Stored Procedures', val: 'SQL Practice:::Views & Stored Procedures:::60' }
+      { name: '🗄️ SQL Practice (General / Unspecified)', val: 'SQL Practice:::SQL Practice:::45', isGeneral: true },
+      { name: 'Queries & LeetCode', val: 'SQL Practice:::Queries & LeetCode:::45' },
+      { name: 'Window Functions & CTEs', val: 'SQL Practice:::Window Functions & CTEs:::45' },
+      { name: 'Joins & Optimization', val: 'SQL Practice:::Joins & Optimization:::45' },
+      { name: 'Views & Stored Procedures', val: 'SQL Practice:::Views & Stored Procedures:::45' }
     ]
   },
   {
@@ -1898,27 +1920,39 @@ const DAILY_PROTOCOL_OPTIONS = [
     ]
   },
   {
-    label: '🚀 Job Applications (90m)',
-    mins: 90,
-    prefix: 'Job',
+    label: '🐍 Python Practice (30m)',
+    mins: 30,
+    prefix: 'Python',
     topics: [
-      { name: '🚀 Job Applications (General / Unspecified)', val: 'Job Applications:::Job Applications:::90', isGeneral: true },
-      { name: 'Decision Engine Matching', val: 'Job Applications:::Decision Engine Matching:::90' },
-      { name: 'Naukri Outreach & Boost', val: 'Job Applications:::Naukri Outreach & Boost:::90' },
-      { name: 'LinkedIn Networking & InMail', val: 'Job Applications:::LinkedIn Networking & InMail:::90' },
-      { name: 'Direct Company Applications', val: 'Job Applications:::Direct Company Applications:::90' }
+      { name: '🐍 Python Practice (General / Unspecified)', val: 'Python for Analytics Track:::Python Practice:::30', isGeneral: true },
+      { name: 'Pandas & DataFrames', val: 'Python for Analytics Track:::Pandas & DataFrames:::30' },
+      { name: 'NumPy & Arrays', val: 'Python for Analytics Track:::NumPy & Arrays:::30' },
+      { name: 'Automation & Scripting', val: 'Python for Analytics Track:::Automation & Scripting:::30' },
+      { name: 'Data Cleaning & Wrangling', val: 'Python for Analytics Track:::Data Cleaning & Wrangling:::30' }
     ]
   },
   {
-    label: '💭 Interview Prep (45m)',
-    mins: 45,
+    label: '🚀 Job Applications (30m)',
+    mins: 30,
+    prefix: 'Job',
+    topics: [
+      { name: '🚀 Job Applications (General / Unspecified)', val: 'Job Applications:::Job Applications:::30', isGeneral: true },
+      { name: 'Decision Engine Matching', val: 'Job Applications:::Decision Engine Matching:::30' },
+      { name: 'Naukri Outreach & Boost', val: 'Job Applications:::Naukri Outreach & Boost:::30' },
+      { name: 'LinkedIn Networking & InMail', val: 'Job Applications:::LinkedIn Networking & InMail:::30' },
+      { name: 'Direct Company Applications', val: 'Job Applications:::Direct Company Applications:::30' }
+    ]
+  },
+  {
+    label: '💭 Interview Prep (30m)',
+    mins: 30,
     prefix: 'Interview',
     topics: [
-      { name: '💭 Interview Prep (General / Unspecified)', val: 'Interview Prep:::Interview Prep:::45', isGeneral: true },
-      { name: 'Verbal Pitches & Intro', val: 'Interview Prep:::Verbal Pitches & Intro:::45' },
-      { name: 'Behavioral & Scenario (STAR)', val: 'Interview Prep:::Behavioral & Scenario STAR:::45' },
-      { name: 'Mock Technical Interview', val: 'Interview Prep:::Mock Technical Interview:::45' },
-      { name: 'Project Storytelling Deep-Dive', val: 'Interview Prep:::Project Storytelling Deep-Dive:::45' }
+      { name: '💭 Interview Prep (General / Unspecified)', val: 'Interview Prep:::Interview Prep:::30', isGeneral: true },
+      { name: 'Verbal Pitches & Intro', val: 'Interview Prep:::Verbal Pitches & Intro:::30' },
+      { name: 'Behavioral & Scenario (STAR)', val: 'Interview Prep:::Behavioral & Scenario STAR:::30' },
+      { name: 'Mock Technical Interview', val: 'Interview Prep:::Mock Technical Interview:::30' },
+      { name: 'Project Storytelling Deep-Dive', val: 'Interview Prep:::Project Storytelling Deep-Dive:::30' }
     ]
   }
 ];
@@ -1943,14 +1977,14 @@ function populateMyCESTopicDropdown(extraTracks) {
   // 2. Extra tracks from MyCES Supabase if available
   if (Array.isArray(extraTracks)) {
     extraTracks.forEach(t => {
-      if (t.name && !t.name.toLowerCase().includes('sql') && !t.name.toLowerCase().includes('power')) {
+      if (t.name && !t.name.toLowerCase().includes('sql') && !t.name.toLowerCase().includes('power') && !t.name.toLowerCase().includes('python')) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = `📚 ${t.name}`;
         if (Array.isArray(t.modules)) {
           t.modules.forEach(m => {
             const opt = document.createElement('option');
-            opt.value = `${t.name}:::${m.name}:::45`;
-            opt.textContent = `${m.name} (45m)`;
+            opt.value = `${t.name}:::${m.name}:::30`;
+            opt.textContent = `${m.name} (30m)`;
             optgroup.appendChild(opt);
           });
         }
@@ -1981,7 +2015,7 @@ async function logStudySessionToMyCES({ subject, topic, hours, notes }) {
     // 2. Create study log item
     const newLog = {
       id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'log_' + Date.now(),
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateKey(),
       subject: subject || 'SQL Track',
       topic: topic,
       plannedHours: hours,
@@ -2014,11 +2048,12 @@ async function logStudySessionToMyCES({ subject, topic, hours, notes }) {
 
     // 4. Update bidirectional dailyProtocol in app_state
     fullData.dailyProtocol = {
-      date: new Date().toDateString(),
-      sql: protocolDaily.sql,
-      pbi: protocolDaily.pbi,
-      apps: protocolDaily.apps,
-      interview: protocolDaily.interview,
+      date: getLocalDateKey(),
+      sql: protocolDaily.sql || 0,
+      pbi: protocolDaily.pbi || 0,
+      python: protocolDaily.python || 0,
+      apps: protocolDaily.apps || 0,
+      interview: protocolDaily.interview || 0,
       updatedAt: new Date().toISOString()
     };
 
@@ -2054,16 +2089,20 @@ function logTaskToMyCES(task) {
       subject = 'Power BI Track';
     } else if (lower.includes('python') || lower.includes('pandas') || lower.includes('numpy') || lower.includes('openpyxl')) {
       subject = 'Python for Analytics Track';
+    } else if (lower.includes('application') || lower.includes('job') || lower.includes('naukri') || lower.includes('linkedin')) {
+      subject = 'Job Applications';
+    } else if (lower.includes('interview') || lower.includes('pitch') || lower.includes('mock')) {
+      subject = 'Interview Prep';
     } else {
       subject = 'SQL Track';
     }
   }
 
-  const hours = parseFloat((task.minutes / 60).toFixed(1));
+  const hours = parseFloat((task.minutes / 60).toFixed(2));
   logStudySessionToMyCES({
     subject: subject,
     topic: topic,
-    hours: hours > 0 ? hours : 1,
+    hours: hours > 0 ? hours : 0.5,
     notes: `Completed in Focus Flow • ${task.minutes} min productive flow`
   });
 }
