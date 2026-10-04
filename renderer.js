@@ -869,6 +869,7 @@ function upgradeBreakToLong() {
 
 function exitBreakAndResumeFocus() {
   pauseTimer();
+  const wasSprintBreak = (state.breakType === 'Sprint Recharge');
   state.isBreakMode = false;
   state.breakType = null;
 
@@ -884,6 +885,9 @@ function exitBreakAndResumeFocus() {
     state.activeTaskId = activeTask.id;
     
     if (state.pacingMode === 'pomo') {
+      if (wasSprintBreak) {
+        state.sprintIndex++;
+      }
       const sprintSecs = Math.min(state.taskRemainingSeconds, state.pomoSprintMinutes * 60);
       state.totalTime = sprintSecs;
       state.timeLeft = sprintSecs;
