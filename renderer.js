@@ -834,10 +834,20 @@ function startQuickBreak(minutes, typeName) {
   state.totalTime = minutes * 60;
   state.timeLeft = state.totalTime;
 
-  timerLabel.textContent = `${typeName.toUpperCase()} BREAK`;
-  activeSessionTitle.textContent = `${typeName} Break`;
-  activeSessionDurationTag.textContent = `${minutes}m`;
-  pillTrackName.textContent = `${typeName} Break`;
+  const activeTask = getActiveTask();
+  if (state.pacingMode === 'pomo' && activeTask) {
+    const totalSprints = Math.max(1, Math.ceil((activeTask.minutes * 60) / (state.pomoSprintMinutes * 60)));
+    const nextSprint = Math.min(totalSprints, state.sprintIndex + 1);
+    timerLabel.textContent = `☕ BREAK (NEXT: SPRINT ${nextSprint}/${totalSprints})`;
+    activeSessionTitle.textContent = `${activeTask.title} (Sprint ${state.sprintIndex}/${totalSprints} Done)`;
+    activeSessionDurationTag.textContent = `${minutes}m Break`;
+    pillTrackName.textContent = `☕ Break • Next: Sprint ${nextSprint}`;
+  } else {
+    timerLabel.textContent = `${typeName.toUpperCase()} BREAK`;
+    activeSessionTitle.textContent = `${typeName} Break`;
+    activeSessionDurationTag.textContent = `${minutes}m`;
+    pillTrackName.textContent = `${typeName} Break`;
+  }
 
   const breakIconEl = document.getElementById('break-btn-icon');
   if (breakIconEl) breakIconEl.textContent = '⚡';
@@ -893,24 +903,28 @@ function exitBreakAndResumeFocus() {
       state.timeLeft = sprintSecs;
       const totalSprints = Math.max(1, Math.ceil((activeTask.minutes * 60) / (state.pomoSprintMinutes * 60)));
       timerLabel.textContent = `🍅 SPRINT ${state.sprintIndex}/${totalSprints}`;
+      activeSessionTitle.textContent = activeTask.title;
       activeSessionDurationTag.textContent = `${Math.ceil(sprintSecs / 60)}m / ${activeTask.minutes}m`;
+      pillTrackName.textContent = activeTask.title;
     } else {
       state.totalTime = activeTask.minutes * 60;
       state.timeLeft = state.totalTime;
       timerLabel.textContent = 'PRODUCTIVE TIME';
+      activeSessionTitle.textContent = activeTask.title;
       activeSessionDurationTag.textContent = `${activeTask.minutes}m`;
+      pillTrackName.textContent = activeTask.title;
     }
-    
-    activeSessionTitle.textContent = activeTask.title;
-    pillTrackName.textContent = activeTask.title;
   } else {
     state.activeTaskId = null;
     if (state.pacingMode === 'pomo') {
+      if (wasSprintBreak) {
+        state.sprintIndex++;
+      }
       const sprintSecs = state.pomoSprintMinutes * 60;
       state.totalTime = sprintSecs;
       state.timeLeft = sprintSecs;
       state.taskRemainingSeconds = sprintSecs;
-      timerLabel.textContent = '🍅 POMODORO SPRINT';
+      timerLabel.textContent = `🍅 POMODORO SPRINT ${state.sprintIndex}`;
       activeSessionTitle.textContent = 'Pomodoro Focus';
       activeSessionDurationTag.textContent = `${state.pomoSprintMinutes}m`;
       pillTrackName.textContent = 'Pomodoro Focus';
@@ -925,10 +939,10 @@ function exitBreakAndResumeFocus() {
     }
   }
 
-    updateDisplay();
-    playChime('sessionStart');
-    startTimer();
-  }
+  updateDisplay();
+  playChime('sessionStart');
+  startTimer();
+}
 
 function updateUpcomingPreview() {}
 
