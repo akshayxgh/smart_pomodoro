@@ -1000,6 +1000,14 @@ body.theme-light .timer-time {
   background: linear-gradient(90deg, #8b5cf6, #ec4899);
 }
 
+.pillar-bar-fill.portfolio-bar {
+  background: linear-gradient(90deg, #06b6d4, #14b8a6);
+}
+
+.pillar-bar-fill.ai_course-bar {
+  background: linear-gradient(90deg, #ec4899, #f43f5e);
+}
+
 /* ==================================================== */
 /* Music Card Section */
 /* ==================================================== */

@@ -33,9 +33,9 @@ let state = {
   sprintIndex: 1,
 
   // Audio playback engine
-  activeAudioEngine: 'stream', // 'stream' | 'synth' | 'youtube'
-  currentTitle: 'Synthwave Focus',
-  currentStreamSrc: 'https://streams.ilovemusic.de/iloveradio17.mp3',
+  activeAudioEngine: 'stream', // 'stream' | 'youtube'
+  currentTitle: 'Lofi Chill & Beats',
+  currentStreamSrc: 'https://ice1.somafm.com/groovesalad-128-mp3',
   currentSynthType: null,
   currentVideoId: null,
   isVideoVisible: false,
@@ -360,14 +360,22 @@ function injectYouTubeEngine() {
 
   ytWebview.executeJavaScript(`
     (() => {
+      // 1. Auto dismiss consent banners & popups
       const dismissBtns = document.querySelectorAll(
-        'button[aria-label*="Dismiss"], #dismiss-button, ytd-button-renderer.ytd-consent-bump-v2-lightbox button, [aria-label*="Accept all"], [aria-label*="Reject all"]'
+        'button[aria-label*="Dismiss"], #dismiss-button, ytd-button-renderer.ytd-consent-bump-v2-lightbox button, [aria-label*="Accept all"], [aria-label*="Reject all"], [aria-label*="I agree"]'
       );
-      dismissBtns.forEach(b => b.click());
+      dismissBtns.forEach(b => { try { b.click(); } catch(e){} });
 
+      // 2. Locate video player
       const video = document.querySelector('video');
-      if (!video) return;
+      const playBtn = document.querySelector('.ytp-large-play-button, .ytp-play-button');
 
+      if (!video) {
+        if (playBtn) playBtn.click();
+        return;
+      }
+
+      // 3. Skip Ads
       const isAd = document.querySelector('.ad-showing, .ad-interrupting, .video-ads, .ytp-ad-player-overlay, .ytp-ad-module');
       if (isAd) {
         video.muted = true;
@@ -378,7 +386,7 @@ function injectYouTubeEngine() {
         const skipBtns = document.querySelectorAll(
           '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, .ytp-ad-skip-button-text'
         );
-        skipBtns.forEach(b => b.click());
+        skipBtns.forEach(b => { try { b.click(); } catch(e){} });
       } else {
         if (video.playbackRate > 1.0) {
           video.playbackRate = 1.0;
@@ -386,12 +394,16 @@ function injectYouTubeEngine() {
         video.muted = ${state.isMuted};
         video.volume = ${volFraction};
 
-        if (${state.musicPlaying} && video.paused) {
-          video.play().catch(() => {});
-          const bigPlay = document.querySelector('.ytp-large-play-button, .ytp-play-button, .player-control-play-pause-icon');
-          if (bigPlay && video.paused) bigPlay.click();
-        } else if (!${state.musicPlaying} && !video.paused) {
-          video.pause();
+        if (${state.musicPlaying}) {
+          if (video.paused) {
+            video.play().catch(() => {
+              if (playBtn) playBtn.click();
+            });
+          }
+        } else {
+          if (!video.paused) {
+            video.pause();
+          }
         }
       }
     })();
@@ -424,7 +436,7 @@ function startAudioPlayback() {
     }
     audioStreamPlayer.volume = state.isMuted ? 0 : state.volume / 100;
     audioStreamPlayer.play().then(() => {
-      trackStatusEl.textContent = 'Playing Radio Stream';
+      trackStatusEl.textContent = 'Playing Lofi Stream';
     }).catch(e => {
       console.log('Stream play error:', e);
       trackStatusEl.textContent = 'Stream buffering...';
@@ -433,7 +445,7 @@ function startAudioPlayback() {
     startSynthesizer(state.currentSynthType);
     trackStatusEl.textContent = 'Generative Soundscape';
   } else if (state.activeAudioEngine === 'youtube') {
-    trackStatusEl.textContent = 'Streaming YouTube Audio';
+    trackStatusEl.textContent = 'Playing YouTube Audio';
     injectYouTubeEngine();
   }
 }
@@ -475,9 +487,11 @@ function updateMusicUI(isPlaying) {
 }
 
 function extractYouTubeId(url) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  if (!url) return null;
+  url = url.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/|shorts\/))([\w-]{11})/);
+  return match ? match[1] : null;
 }
 
 // ----------------------------------------------------
@@ -496,41 +510,63 @@ function saveDailyStats() {
 }
 
 // ----------------------------------------------------
-// Daily Focus Protocol Tracker Engine (285 min total)
-function getLocalDateKey() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+// Daily Focus Protocol Tracker Engine (225 min total, 7 MyCES Pillars)
+// Operational day changes at 06:30 AM IST (consistent with MyCES shifts)
+function getOperationalDateKey() {
+  const d = new Date(Date.now() - (6 * 60 + 30) * 60 * 1000);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(d);
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
   return `${year}-${month}-${day}`;
 }
 
+function getLocalDateKey() {
+  return getOperationalDateKey();
+}
+
 const PROTOCOL_TARGETS = {
+  pbi: 45,
   sql: 45,
-  pbi: 90,
-  python: 30,
+  python: 45,
+  portfolio: 30,
   apps: 30,
-  interview: 30,
+  interview: 15,
+  ai_course: 15,
   total: 225
 };
 
 let protocolDaily = JSON.parse(localStorage.getItem('focus_flow_protocol_daily')) || {
-  date: getLocalDateKey(),
-  sql: 0,
+  date: getOperationalDateKey(),
   pbi: 0,
+  sql: 0,
   python: 0,
+  portfolio: 0,
   apps: 0,
-  interview: 0
+  interview: 0,
+  ai_course: 0
 };
 
-if (protocolDaily.date !== getLocalDateKey() && protocolDaily.date !== new Date().toDateString()) {
+// Ensure all 7 pillar keys exist if upgraded from older version
+['pbi', 'sql', 'python', 'portfolio', 'apps', 'interview', 'ai_course'].forEach(k => {
+  if (typeof protocolDaily[k] !== 'number') protocolDaily[k] = 0;
+});
+
+if (protocolDaily.date !== getOperationalDateKey() && protocolDaily.date !== new Date().toDateString()) {
   protocolDaily = {
-    date: getLocalDateKey(),
-    sql: 0,
+    date: getOperationalDateKey(),
     pbi: 0,
+    sql: 0,
     python: 0,
+    portfolio: 0,
     apps: 0,
-    interview: 0
+    interview: 0,
+    ai_course: 0
   };
   localStorage.setItem('focus_flow_protocol_daily', JSON.stringify(protocolDaily));
 }
@@ -545,20 +581,30 @@ function updateProtocolUI() {
   const elTotalPct = document.getElementById('protocol-total-pct');
   const elOverallBar = document.getElementById('protocol-overall-bar');
 
-  const totalDone = (protocolDaily.sql || 0) + (protocolDaily.pbi || 0) + (protocolDaily.python || 0) + (protocolDaily.apps || 0) + (protocolDaily.interview || 0);
+  const totalDone = 
+    (protocolDaily.pbi || 0) + 
+    (protocolDaily.sql || 0) + 
+    (protocolDaily.python || 0) + 
+    (protocolDaily.portfolio || 0) + 
+    (protocolDaily.apps || 0) + 
+    (protocolDaily.interview || 0) + 
+    (protocolDaily.ai_course || 0);
+
   const overallPct = Math.min(100, Math.round((totalDone / PROTOCOL_TARGETS.total) * 100));
 
   if (elTotalMins) elTotalMins.textContent = totalDone;
   if (elTotalPct) elTotalPct.textContent = `${overallPct}%`;
   if (elOverallBar) elOverallBar.style.width = `${overallPct}%`;
 
-  // Update 5 Pillars
+  // Update 7 Pillars
   const pillars = [
-    { key: 'sql', curId: 'pillar-cur-sql', pctId: 'pillar-pct-sql', barId: 'pillar-bar-sql', statusId: 'pillar-status-sql', target: PROTOCOL_TARGETS.sql },
     { key: 'pbi', curId: 'pillar-cur-pbi', pctId: 'pillar-pct-pbi', barId: 'pillar-bar-pbi', statusId: 'pillar-status-pbi', target: PROTOCOL_TARGETS.pbi },
+    { key: 'sql', curId: 'pillar-cur-sql', pctId: 'pillar-pct-sql', barId: 'pillar-bar-sql', statusId: 'pillar-status-sql', target: PROTOCOL_TARGETS.sql },
     { key: 'python', curId: 'pillar-cur-python', pctId: 'pillar-pct-python', barId: 'pillar-bar-python', statusId: 'pillar-status-python', target: PROTOCOL_TARGETS.python },
+    { key: 'portfolio', curId: 'pillar-cur-portfolio', pctId: 'pillar-pct-portfolio', barId: 'pillar-bar-portfolio', statusId: 'pillar-status-portfolio', target: PROTOCOL_TARGETS.portfolio },
     { key: 'apps', curId: 'pillar-cur-apps', pctId: 'pillar-pct-apps', barId: 'pillar-bar-apps', statusId: 'pillar-status-apps', target: PROTOCOL_TARGETS.apps },
-    { key: 'interview', curId: 'pillar-cur-interview', pctId: 'pillar-pct-interview', barId: 'pillar-bar-interview', statusId: 'pillar-status-interview', target: PROTOCOL_TARGETS.interview }
+    { key: 'interview', curId: 'pillar-cur-interview', pctId: 'pillar-pct-interview', barId: 'pillar-bar-interview', statusId: 'pillar-status-interview', target: PROTOCOL_TARGETS.interview },
+    { key: 'ai_course', curId: 'pillar-cur-ai_course', pctId: 'pillar-pct-ai_course', barId: 'pillar-bar-ai_course', statusId: 'pillar-status-ai_course', target: PROTOCOL_TARGETS.ai_course }
   ];
 
   pillars.forEach(p => {
@@ -576,7 +622,7 @@ function updateProtocolUI() {
     if (elBar) elBar.style.width = `${pct}%`;
     if (elStatus) {
       if (val >= p.target) {
-        elStatus.textContent = '@Done';
+        elStatus.textContent = '✓ Done';
         elStatus.className = 'pillar-status-tag done';
       } else {
         elStatus.textContent = `${left}m left`;
@@ -590,18 +636,22 @@ function recordProtocolProgress(taskOrName, mins) {
   if (!mins || mins <= 0) return;
   const name = (typeof taskOrName === 'string' ? taskOrName : (taskOrName ? (`${taskOrName.mycesSubject || ''} ${taskOrName.mycesTopic || ''} ${taskOrName.title || ''}`) : '')).toLowerCase();
 
-  if (name.includes('power bi') || name.includes('dax') || name.includes('pbi') || name.includes('calculate') || name.includes('modeling') || name.includes('pl-300') || name.includes('window, matchby')) {
-    protocolDaily.pbi += mins;
-  } else if (name.includes('python') || name.includes('pandas') || name.includes('numpy') || name.includes('scripting') || name.includes('openpyxl')) {
-    protocolDaily.python = (protocolDaily.python || 0) + mins;
+  if (name.includes('power bi') || name.includes('dax') || name.includes('pbi') || name.includes('calculate') || name.includes('pl-300')) {
+    protocolDaily.pbi = (protocolDaily.pbi || 0) + mins;
   } else if (name.includes('sql') || name.includes('database') || name.includes('query') || name.includes('leetcode')) {
-    protocolDaily.sql += mins;
+    protocolDaily.sql = (protocolDaily.sql || 0) + mins;
+  } else if (name.includes('python') || name.includes('pandas') || name.includes('numpy') || name.includes('openpyxl')) {
+    protocolDaily.python = (protocolDaily.python || 0) + mins;
+  } else if (name.includes('ai course') || name.includes('claude') || name.includes('ai fluency') || name.includes('claude code')) {
+    protocolDaily.ai_course = (protocolDaily.ai_course || 0) + mins;
+  } else if (name.includes('portfolio') || name.includes('project') || name.includes('case study')) {
+    protocolDaily.portfolio = (protocolDaily.portfolio || 0) + mins;
   } else if (name.includes('application') || name.includes('job') || name.includes('naukri') || name.includes('linkedin') || name.includes('decision engine')) {
-    protocolDaily.apps += mins;
+    protocolDaily.apps = (protocolDaily.apps || 0) + mins;
   } else if (name.includes('interview') || name.includes('pitch') || name.includes('mock') || name.includes('scenario') || name.includes('star')) {
-    protocolDaily.interview += mins;
+    protocolDaily.interview = (protocolDaily.interview || 0) + mins;
   } else {
-    protocolDaily.sql += mins;
+    protocolDaily.sql = (protocolDaily.sql || 0) + mins;
   }
 
   saveProtocolDaily();
@@ -1834,14 +1884,16 @@ async function syncMyCESBidirectional(isManual = false) {
 
     // 2. Compute today's minutes from Supabase studyLogs
     const studyLogs = Array.isArray(fullData.studyLogs) ? fullData.studyLogs : [];
-    const todayLogs = studyLogs.filter(l => (l.date === todayLocal || l.date === todayIso));
+    const todayLogs = studyLogs.filter(l => (l.date === todayLocal || l.date === todayIso || l.date === todayDateString));
 
     let remoteMins = {
-      sql: 0,
       pbi: 0,
+      sql: 0,
       python: 0,
+      portfolio: 0,
       apps: 0,
-      interview: 0
+      interview: 0,
+      ai_course: 0
     };
 
     todayLogs.forEach(log => {
@@ -1849,12 +1901,16 @@ async function syncMyCESBidirectional(isManual = false) {
       const mins = Math.round(hours * 60) || 30;
       const text = `${log.subject || ''} ${log.topic || ''} ${log.notes || ''}`.toLowerCase();
 
-      if (text.includes('power bi') || text.includes('dax') || text.includes('pbi') || text.includes('calculate') || text.includes('modeling') || text.includes('pl-300') || text.includes('window, matchby')) {
+      if (text.includes('power bi') || text.includes('dax') || text.includes('pbi') || text.includes('calculate') || text.includes('pl-300')) {
         remoteMins.pbi += mins;
-      } else if (text.includes('python') || text.includes('pandas') || text.includes('numpy') || text.includes('scripting') || text.includes('openpyxl')) {
-        remoteMins.python += mins;
       } else if (text.includes('sql') || text.includes('database') || text.includes('query') || text.includes('leetcode')) {
         remoteMins.sql += mins;
+      } else if (text.includes('python') || text.includes('pandas') || text.includes('numpy') || text.includes('openpyxl')) {
+        remoteMins.python += mins;
+      } else if (text.includes('ai course') || text.includes('claude') || text.includes('ai fluency') || text.includes('claude code')) {
+        remoteMins.ai_course += mins;
+      } else if (text.includes('portfolio') || text.includes('project') || text.includes('case study')) {
+        remoteMins.portfolio += mins;
       } else if (text.includes('application') || text.includes('job') || text.includes('naukri') || text.includes('linkedin') || text.includes('decision engine')) {
         remoteMins.apps += mins;
       } else if (text.includes('interview') || text.includes('pitch') || text.includes('mock') || text.includes('scenario') || text.includes('star')) {
@@ -1868,18 +1924,20 @@ async function syncMyCESBidirectional(isManual = false) {
     if (fullData.dailyProtocol) {
       const dp = fullData.dailyProtocol;
       if (dp.date === todayLocal || dp.date === todayIso || dp.date === todayDateString) {
-        remoteMins.sql = Math.max(remoteMins.sql, dp.sql || 0);
         remoteMins.pbi = Math.max(remoteMins.pbi, dp.pbi || 0);
+        remoteMins.sql = Math.max(remoteMins.sql, dp.sql || 0);
         remoteMins.python = Math.max(remoteMins.python, dp.python || 0);
+        remoteMins.portfolio = Math.max(remoteMins.portfolio, dp.portfolio || 0);
         remoteMins.apps = Math.max(remoteMins.apps, dp.apps || 0);
         remoteMins.interview = Math.max(remoteMins.interview, dp.interview || 0);
+        remoteMins.ai_course = Math.max(remoteMins.ai_course, dp.ai_course || 0);
       }
     }
 
     // Merge: take maximum of local & remote to preserve any offline completed focus sessions
     let changed = false;
-    ['sql', 'pbi', 'python', 'apps', 'interview'].forEach(key => {
-      if (remoteMins[key] > (protocolDaily[key] || 0)) {
+    ['pbi', 'sql', 'python', 'portfolio', 'apps', 'interview', 'ai_course'].forEach(key => {
+      if ((remoteMins[key] || 0) > (protocolDaily[key] || 0)) {
         protocolDaily[key] = remoteMins[key];
         changed = true;
       }
@@ -1894,7 +1952,14 @@ async function syncMyCESBidirectional(isManual = false) {
     }
 
     if (isManual) {
-      const totalDone = (protocolDaily.sql || 0) + (protocolDaily.pbi || 0) + (protocolDaily.python || 0) + (protocolDaily.apps || 0) + (protocolDaily.interview || 0);
+      const totalDone = 
+        (protocolDaily.pbi || 0) + 
+        (protocolDaily.sql || 0) + 
+        (protocolDaily.python || 0) + 
+        (protocolDaily.portfolio || 0) + 
+        (protocolDaily.apps || 0) + 
+        (protocolDaily.interview || 0) + 
+        (protocolDaily.ai_course || 0);
       showMyCESToast(`⚡ Synced with MyCES! ${totalDone}/225m completed today`);
     }
   } catch (err) {
@@ -1913,40 +1978,65 @@ async function fetchMyCESTracks() {
 
 const DAILY_PROTOCOL_OPTIONS = [
   {
+    label: '📊 Power BI & DAX (45m)',
+    mins: 45,
+    prefix: 'Power',
+    topics: [
+      { name: '📊 Power BI & DAX (General / Unspecified)', val: 'Power BI Track:::Power BI & DAX Practice (45m Target):::45', isGeneral: true },
+      { name: 'Power BI Service', val: 'Power BI Track:::Power BI Service:::45' },
+      { name: 'Workspaces & Roles', val: 'Power BI Track:::Workspaces & Roles:::45' },
+      { name: 'Apps & Sharing', val: 'Power BI Track:::Apps & Sharing:::45' },
+      { name: 'Governance & RLS', val: 'Power BI Track:::Governance & RLS:::45' },
+      { name: 'Incremental Refresh', val: 'Power BI Track:::Incremental Refresh:::45' },
+      { name: 'Deployment Pipelines', val: 'Power BI Track:::Deployment Pipelines:::45' },
+      { name: 'Performance Optimization', val: 'Power BI Track:::Performance Optimization:::45' },
+      { name: 'Advanced DAX', val: 'Power BI Track:::Advanced DAX:::45' },
+      { name: 'PL-300 Preparation', val: 'Power BI Track:::PL-300 Preparation:::45' }
+    ]
+  },
+  {
     label: '🗄️ SQL Practice (45m)',
     mins: 45,
     prefix: 'SQL',
     topics: [
-      { name: '🗄️ SQL Practice (General / Unspecified)', val: 'SQL Practice:::SQL Practice:::45', isGeneral: true },
-      { name: 'Queries & LeetCode', val: 'SQL Practice:::Queries & LeetCode:::45' },
-      { name: 'Window Functions & CTEs', val: 'SQL Practice:::Window Functions & CTEs:::45' },
-      { name: 'Joins & Optimization', val: 'SQL Practice:::Joins & Optimization:::45' },
-      { name: 'Views & Stored Procedures', val: 'SQL Practice:::Views & Stored Procedures:::45' }
+      { name: '🗄️ SQL Practice (General / Unspecified)', val: 'SQL Track:::Daily SQL Practice (45m Target):::45', isGeneral: true },
+      { name: 'Database Fundamentals', val: 'SQL Track:::Database Fundamentals:::45' },
+      { name: 'Keys & Constraints', val: 'SQL Track:::Keys & Constraints:::45' },
+      { name: 'Relationships & Joins', val: 'SQL Track:::Relationships & Joins:::45' },
+      { name: 'Self Joins', val: 'SQL Track:::Self Joins:::45' },
+      { name: 'Transactions (Commit/Rollback)', val: 'SQL Track:::Transactions (Commit/Rollback):::45' },
+      { name: 'ACID Properties', val: 'SQL Track:::ACID Properties:::45' },
+      { name: 'Views & Stored Procedures', val: 'SQL Track:::Views & Stored Procedures:::45' },
+      { name: 'Functions & Window Functions', val: 'SQL Track:::Functions & Window Functions:::45' },
+      { name: 'Indexes & Query Optimization', val: 'SQL Track:::Indexes & Query Optimization:::45' }
     ]
   },
   {
-    label: '📊 Power BI & DAX (90m)',
-    mins: 90,
-    prefix: 'Power',
-    topics: [
-      { name: '📊 Power BI & DAX (General / Unspecified)', val: 'Power BI & DAX:::Power BI & DAX:::90', isGeneral: true },
-      { name: 'CALCULATE & Filter Context', val: 'Power BI & DAX:::CALCULATE & Filter Context:::90' },
-      { name: 'Data Modeling & Star Schema', val: 'Power BI & DAX:::Data Modeling & Star Schema:::90' },
-      { name: 'Reports & Visuals', val: 'Power BI & DAX:::Reports & Visuals:::90' },
-      { name: 'Time Intelligence & Advanced DAX', val: 'Power BI & DAX:::Time Intelligence & Advanced DAX:::90' },
-      { name: 'PL-300 Preparation', val: 'Power BI & DAX:::PL-300 Preparation:::90' }
-    ]
-  },
-  {
-    label: '🐍 Python Practice (30m)',
-    mins: 30,
+    label: '🐍 Python Practice (45m)',
+    mins: 45,
     prefix: 'Python',
     topics: [
-      { name: '🐍 Python Practice (General / Unspecified)', val: 'Python for Analytics Track:::Python Practice:::30', isGeneral: true },
-      { name: 'Pandas & DataFrames', val: 'Python for Analytics Track:::Pandas & DataFrames:::30' },
-      { name: 'NumPy & Arrays', val: 'Python for Analytics Track:::NumPy & Arrays:::30' },
-      { name: 'Automation & Scripting', val: 'Python for Analytics Track:::Automation & Scripting:::30' },
-      { name: 'Data Cleaning & Wrangling', val: 'Python for Analytics Track:::Data Cleaning & Wrangling:::30' }
+      { name: '🐍 Python Practice (General / Unspecified)', val: 'Python for Analytics Track:::Python for Analytics Practice (45m Target):::45', isGeneral: true },
+      { name: 'Pandas', val: 'Python for Analytics Track:::Pandas:::45' },
+      { name: 'NumPy (Basic)', val: 'Python for Analytics Track:::NumPy (Basic):::45' },
+      { name: 'OpenPyXL', val: 'Python for Analytics Track:::OpenPyXL:::45' },
+      { name: 'Requests', val: 'Python for Analytics Track:::Requests:::45' },
+      { name: 'Plotly', val: 'Python for Analytics Track:::Plotly:::45' },
+      { name: 'Data Cleaning', val: 'Python for Analytics Track:::Data Cleaning:::45' },
+      { name: 'API Integration', val: 'Python for Analytics Track:::API Integration:::45' },
+      { name: 'Data Transformation', val: 'Python for Analytics Track:::Data Transformation:::45' }
+    ]
+  },
+  {
+    label: '📁 Portfolio Project (30m)',
+    mins: 30,
+    prefix: 'Portfolio',
+    topics: [
+      { name: '📁 Portfolio Project (General / Unspecified)', val: 'Portfolio Project:::Portfolio Project Build (30m Target):::30', isGeneral: true },
+      { name: 'GitHub & Repo Setup', val: 'Portfolio Project:::GitHub & Repo Setup:::30' },
+      { name: 'Data Pipeline & Architecture', val: 'Portfolio Project:::Data Pipeline & Architecture:::30' },
+      { name: 'Dashboard & Visuals Build', val: 'Portfolio Project:::Dashboard & Visuals Build:::30' },
+      { name: 'Case Study & Documentation', val: 'Portfolio Project:::Case Study & Documentation:::30' }
     ]
   },
   {
@@ -1954,7 +2044,7 @@ const DAILY_PROTOCOL_OPTIONS = [
     mins: 30,
     prefix: 'Job',
     topics: [
-      { name: '🚀 Job Applications (General / Unspecified)', val: 'Job Applications:::Job Applications:::30', isGeneral: true },
+      { name: '🚀 Job Applications (General / Unspecified)', val: 'Job Applications:::Targeted Job Applications (30m Target):::30', isGeneral: true },
       { name: 'Decision Engine Matching', val: 'Job Applications:::Decision Engine Matching:::30' },
       { name: 'Naukri Outreach & Boost', val: 'Job Applications:::Naukri Outreach & Boost:::30' },
       { name: 'LinkedIn Networking & InMail', val: 'Job Applications:::LinkedIn Networking & InMail:::30' },
@@ -1962,15 +2052,28 @@ const DAILY_PROTOCOL_OPTIONS = [
     ]
   },
   {
-    label: '💭 Interview Prep (30m)',
-    mins: 30,
+    label: '💭 Interview Prep (15m)',
+    mins: 15,
     prefix: 'Interview',
     topics: [
-      { name: '💭 Interview Prep (General / Unspecified)', val: 'Interview Prep:::Interview Prep:::30', isGeneral: true },
-      { name: 'Verbal Pitches & Intro', val: 'Interview Prep:::Verbal Pitches & Intro:::30' },
-      { name: 'Behavioral & Scenario (STAR)', val: 'Interview Prep:::Behavioral & Scenario STAR:::30' },
-      { name: 'Mock Technical Interview', val: 'Interview Prep:::Mock Technical Interview:::30' },
-      { name: 'Project Storytelling Deep-Dive', val: 'Interview Prep:::Project Storytelling Deep-Dive:::30' }
+      { name: '💭 Interview Prep (General / Unspecified)', val: 'Interview Practice:::Interview Question Prep (15m Target):::15', isGeneral: true },
+      { name: 'Verbal Pitches & Intro', val: 'Interview Practice:::Verbal Pitches & Intro:::15' },
+      { name: 'Behavioral & Scenario (STAR)', val: 'Interview Practice:::Behavioral & Scenario STAR:::15' },
+      { name: 'Mock Technical Interview', val: 'Interview Practice:::Mock Technical Interview:::15' },
+      { name: 'Project Storytelling Deep-Dive', val: 'Interview Practice:::Project Storytelling Deep-Dive:::15' }
+    ]
+  },
+  {
+    label: '🤖 AI Course (15m)',
+    mins: 15,
+    prefix: 'AI',
+    topics: [
+      { name: '🤖 AI Course (General / Unspecified)', val: 'AI Course:::AI Course - Claude & AI Fluency (15m Target):::15', isGeneral: true },
+      { name: 'Claude 101', val: 'AI Course:::Claude 101:::15' },
+      { name: 'AI Fluency: Framework and foundations', val: 'AI Course:::AI Fluency: Framework and foundations:::15' },
+      { name: 'AI capabilities and limitations', val: 'AI Course:::AI capabilities and limitations:::15' },
+      { name: 'Claude Code 101', val: 'AI Course:::Claude Code 101:::15' },
+      { name: 'Building with the Claude API', val: 'AI Course:::Building with the Claude API:::15' }
     ]
   }
 ];
@@ -1995,7 +2098,8 @@ function populateMyCESTopicDropdown(extraTracks) {
   // 2. Extra tracks from MyCES Supabase if available
   if (Array.isArray(extraTracks)) {
     extraTracks.forEach(t => {
-      if (t.name && !t.name.toLowerCase().includes('sql') && !t.name.toLowerCase().includes('power') && !t.name.toLowerCase().includes('python')) {
+      const norm = (t.name || '').toLowerCase();
+      if (!norm.includes('sql') && !norm.includes('power') && !norm.includes('python') && !norm.includes('ai course')) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = `📚 ${t.name}`;
         if (Array.isArray(t.modules)) {
@@ -2038,8 +2142,8 @@ async function logStudySessionToMyCES({ subject, topic, hours, notes }) {
       topic: topic,
       plannedHours: hours,
       actualHours: hours,
-      confidenceScore: 5,
-      notes: notes || 'Logged via Focus Flow Desktop Timer',
+      confidenceScore: 8,
+      notes: notes || 'Logged via Daily Focus Protocol Desktop Timer',
       completed: true
     };
 
@@ -2067,11 +2171,13 @@ async function logStudySessionToMyCES({ subject, topic, hours, notes }) {
     // 4. Update bidirectional dailyProtocol in app_state
     fullData.dailyProtocol = {
       date: getLocalDateKey(),
-      sql: protocolDaily.sql || 0,
       pbi: protocolDaily.pbi || 0,
+      sql: protocolDaily.sql || 0,
       python: protocolDaily.python || 0,
+      portfolio: protocolDaily.portfolio || 0,
       apps: protocolDaily.apps || 0,
       interview: protocolDaily.interview || 0,
+      ai_course: protocolDaily.ai_course || 0,
       updatedAt: new Date().toISOString()
     };
 
@@ -2102,15 +2208,19 @@ function logTaskToMyCES(task) {
   let topic = task.mycesTopic || task.title;
 
   if (!task.mycesSubject) {
-    const lower = task.title.toLowerCase();
+    const lower = (task.title || '').toLowerCase();
     if (lower.includes('power bi') || lower.includes('dax') || lower.includes('pl-300') || lower.includes('rls')) {
       subject = 'Power BI Track';
     } else if (lower.includes('python') || lower.includes('pandas') || lower.includes('numpy') || lower.includes('openpyxl')) {
       subject = 'Python for Analytics Track';
+    } else if (lower.includes('ai course') || lower.includes('claude') || lower.includes('ai fluency')) {
+      subject = 'AI Course';
+    } else if (lower.includes('portfolio') || lower.includes('project') || lower.includes('case study')) {
+      subject = 'Portfolio Project';
     } else if (lower.includes('application') || lower.includes('job') || lower.includes('naukri') || lower.includes('linkedin')) {
       subject = 'Job Applications';
     } else if (lower.includes('interview') || lower.includes('pitch') || lower.includes('mock')) {
-      subject = 'Interview Prep';
+      subject = 'Interview Practice';
     } else {
       subject = 'SQL Track';
     }
@@ -2133,7 +2243,7 @@ if (selectMycesTopic) {
     const parts = val.split(':::');
     const subject = parts[0];
     const topic = parts[1];
-    const mins = parts[2] ? parseInt(parts[2], 10) : 60;
+    const mins = parts[2] ? parseInt(parts[2], 10) : 45;
     inputTaskName.value = topic;
     inputTaskName.dataset.mycesSubject = subject;
     inputTaskName.dataset.mycesTopic = topic;
@@ -2145,16 +2255,17 @@ if (selectMycesTopic) {
 document.querySelectorAll('.protocol-pillar-card').forEach(card => {
   card.addEventListener('click', () => {
     const subject = card.dataset.subject;
-    const mins = card.dataset.mins || '60';
+    const topic = card.dataset.topic || `${subject} Practice`;
+    const mins = card.dataset.mins || '45';
     if (inputTaskName) {
-      inputTaskName.value = `${subject} Practice`;
+      inputTaskName.value = topic;
       inputTaskName.dataset.mycesSubject = subject;
-      inputTaskName.dataset.mycesTopic = `${subject} Practice`;
+      inputTaskName.dataset.mycesTopic = topic;
     }
     if (inputTaskMins) {
       inputTaskMins.value = mins;
     }
-    showMyCESToast(`Selected ${subject} (${mins}m) - Click '+ Add to Queue'`);
+    showMyCESToast(`Selected ${topic} (${mins}m) - Click '+ Add to Queue'`);
   });
 });
 
