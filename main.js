@@ -134,10 +134,16 @@ function createWindow() {
 
 app.on('second-instance', () => {
   if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
+    if (!mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
     mainWindow.focus();
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  } else {
+    createWindow();
   }
 });
 
